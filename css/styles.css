@@ -53,9 +53,9 @@
   --border: #475569;
   --border-light: #1E293B;
 
-  --text: #F1F5F9;
-  --text-secondary: #94A3B8;
-  --text-muted: #64748B;
+  --text: #F8FAFC;
+  --text-secondary: #CBD5E1;
+  --text-muted: #94A3B8;
 
   --primary-bg: #1E3A5F;
   --success-bg: #064E3B;
@@ -841,13 +841,18 @@ a:hover {
 }
 
 .reminder-item.overdue {
-  background: #FEF2F2;
+  background: color-mix(in srgb, var(--danger-bg) 30%, var(--surface));
   border-left-color: var(--danger);
 }
 
 .reminder-item.today {
-  background: #FEF3C7;
+  background: color-mix(in srgb, var(--warning-bg) 30%, var(--surface));
   border-left-color: var(--warning);
+}
+
+.reminder-item.upcoming {
+  background: color-mix(in srgb, var(--primary-bg) 30%, var(--surface));
+  border-left-color: var(--primary);
 }
 
 .reminder-status {
@@ -1900,6 +1905,10 @@ a:hover {
 
 .toast.info {
   background: var(--primary);
+}
+
+.toast.warning {
+  background: var(--warning);
 }
 
 /* ===========================

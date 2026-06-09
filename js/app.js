@@ -391,6 +391,17 @@ function initEventListeners() {
   const themeToggleBtn = $('#themeToggleBtn');
   themeToggleBtn && themeToggleBtn.addEventListener('click', toggleTheme);
 
+  // Reminder button - scroll to reminders in sidebar
+  const reminderBtn = $('#reminderBtn');
+  if (reminderBtn) {
+    reminderBtn.addEventListener('click', () => {
+      const remindersSection = $('.sidebar-reminders');
+      if (remindersSection) {
+        remindersSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  }
+
   // Keyboard shortcuts
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
@@ -590,7 +601,7 @@ function renderReminders() {
     const statusText = isOverdue ? '已过期' : isToday ? '今天' : formatDate(r.followUpDate);
 
     return `
-      <div class="reminder-item ${statusClass}">
+      <div class="reminder-item ${statusClass}" onclick="viewReminderRecord('${r.recordId}')" style="cursor: pointer;" title="点击查看就医记录">
         <div class="reminder-status">${statusText}</div>
         <div class="reminder-info">
           <span class="reminder-patient">${escapeHtml(r.patient)}</span>
@@ -600,6 +611,15 @@ function renderReminders() {
       </div>
     `;
   }).join('');
+}
+
+function viewReminderRecord(recordId) {
+  const record = state.records.find(r => r.id === recordId);
+  if (record) {
+    openDetailModal(record.id);
+  } else {
+    showToast('未找到该记录', 'error');
+  }
 }
 
 async function loadStats() {
@@ -1762,7 +1782,8 @@ function showToast(message, type = 'info') {
   const iconMap = {
     success: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>',
     error: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
-    info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'
+    info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
+    warning: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'
   };
   toast.innerHTML = `<span class="toast-icon">${iconMap[type] || iconMap.info}</span><span class="toast-message">${escapeHtml(message)}</span>`;
   toast.className = `toast visible ${type}`;
