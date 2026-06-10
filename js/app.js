@@ -528,6 +528,11 @@ async function loadData() {
       costMax: state.costMax
     });
 
+    // 如果 activeMemberId 存在，强制在参数中传递，确保后端只返回该成员的数据
+    if (state.activeMemberId) {
+      params.set('memberId', state.activeMemberId);
+    }
+
     const data = await apiFetch(`/records?${params}`);
     if (!data) {
       console.log('[Data] apiFetch returned null');
@@ -584,7 +589,14 @@ async function loadReminders() {
   try {
     const data = await apiFetch('/reminders');
     if (data) {
-      state.reminders = data.reminders || [];
+      // 前端再次过滤，只显示当前激活成员的数据（双重保险）
+      const activeMemberId = state.activeMemberId;
+      state.reminders = activeMemberId
+        ? (data.reminders || []).filter(r => {
+            const record = state.records.find(rec => rec.id === r.recordId);
+            return record && record.memberId === activeMemberId;
+          })
+        : (data.reminders || []);
       renderReminders();
     }
   } catch (err) {
@@ -767,6 +779,9 @@ async function switchFamilyMember(memberId) {
       state.activeMemberId = memberId;
       state.pagination.page = 1;
       await loadData();
+      // 重新加载提醒数据（按新成员过滤）
+      await loadDueReminders();
+      await loadReminders();
       renderFamilySwitcher();
     }
   } catch (err) {

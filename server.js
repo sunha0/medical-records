@@ -748,8 +748,22 @@ app.put('/api/family/reorder', authenticate, async (req, res) => {
 app.get('/api/reminders', authenticate, async (req, res) => {
   try {
     const records = await getUserRecords(req.userId);
+
+    // 获取当前用户的 activeMemberId
+    const users = await getUsers();
+    const user = users.find(u => u.userId === req.userId);
+    const activeMemberId = user?.settings?.activeMemberId;
+
     const reminders = records
-      .filter(r => r.reminder?.enabled && r.reminder?.followUpDate)
+      .filter(r => {
+        // 基础条件：提醒已启用且有随访日期
+        if (!r.reminder?.enabled || !r.reminder?.followUpDate) return false;
+        // 如果设置了 activeMemberId，只显示该成员的提醒
+        if (activeMemberId) {
+          return r.memberId === activeMemberId;
+        }
+        return true;
+      })
       .map(r => ({
         recordId: r.id,
         patient: r.patient,
@@ -772,12 +786,23 @@ app.get('/api/reminders', authenticate, async (req, res) => {
 app.get('/api/reminders/due', authenticate, async (req, res) => {
   try {
     const records = await getUserRecords(req.userId);
+
+    // 获取当前用户的 activeMemberId
+    const users = await getUsers();
+    const user = users.find(u => u.userId === req.userId);
+    const activeMemberId = user?.settings?.activeMemberId;
+
     const today = new Date().toISOString().split('T')[0];
     const dueReminders = records
       .filter(r => {
         if (!r.reminder?.enabled || !r.reminder?.followUpDate) return false;
         if (r.reminder.notified) return false;
-        return r.reminder.followUpDate <= today;
+        if (r.reminder.followUpDate > today) return false;
+        // 如果设置了 activeMemberId，只显示该成员的提醒
+        if (activeMemberId) {
+          return r.memberId === activeMemberId;
+        }
+        return true;
       })
       .map(r => ({
         recordId: r.id,
