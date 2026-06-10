@@ -86,6 +86,10 @@ const els = {
   confirmDeleteBtn: $('#confirmDeleteBtn'),
   cancelDeleteBtn: $('#cancelDeleteBtn'),
   exportBtn: $('#exportBtn'),
+  exportModal: $('#exportModal'),
+  exportModalClose: $('#exportModalClose'),
+  exportCancelBtn: $('#exportCancelBtn'),
+  exportConfirmBtn: $('#exportConfirmBtn'),
   loadMoreBtn: $('#loadMoreBtn'),
   mobileNav: $('#mobileNav'),
   deleteUserModal: $('#deleteUserModal'),
@@ -312,6 +316,7 @@ function initEventListeners() {
   els.detailModal.querySelector('.modal-backdrop').addEventListener('click', closeDetailModal);
   $('#editRecordBtn').addEventListener('click', handleEditFromDetail);
   $('#deleteRecordBtn').addEventListener('click', handleDeleteRecord);
+  $('#duplicateRecordBtn').addEventListener('click', handleDuplicateRecord);
 
   // Delete confirm
   els.cancelDeleteBtn.addEventListener('click', closeDeleteConfirm);
@@ -326,6 +331,10 @@ function initEventListeners() {
 
   // Export
   els.exportBtn && els.exportBtn.addEventListener('click', handleExport);
+  els.exportModalClose && els.exportModalClose.addEventListener('click', closeExportModal);
+  els.exportCancelBtn && els.exportCancelBtn.addEventListener('click', closeExportModal);
+  els.exportConfirmBtn && els.exportConfirmBtn.addEventListener('click', confirmExport);
+  els.exportModal && els.exportModal.querySelector('.modal-backdrop').addEventListener('click', closeExportModal);
 
   // Load more
   els.loadMoreBtn && els.loadMoreBtn.addEventListener('click', handleLoadMore);
@@ -410,6 +419,7 @@ function initEventListeners() {
       closeDetailModal();
       closeSettingsModal();
       closeDeleteConfirm();
+      closeExportModal();
     }
     if (els.imagePreviewModal.classList.contains('active')) {
       if (e.key === 'ArrowLeft') navigatePreview(-1);
@@ -788,7 +798,12 @@ function closeFamilyMemberModal() {
 function renderFamilyMemberList() {
   const list = $('#familyMemberList');
   list.innerHTML = state.familyMembers.map(m => `
-    <div class="family-member-item">
+    <div class="family-member-item" data-member-id="${m.memberId}">
+      <div class="drag-handle" title="拖拽排序">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2v20M2 12h20M7 7h10M7 17h10M2 7h2M2 17h2M20 7h2M20 17h2"/>
+        </svg>
+      </div>
       <div class="member-avatar-lg">${escapeHtml(m.name.charAt(0))}</div>
       <div class="member-details">
         <span class="member-name-lg">${escapeHtml(m.name)}</span>
@@ -804,6 +819,34 @@ function renderFamilyMemberList() {
       ` : ''}
     </div>
   `).join('');
+
+  // Initialize SortableJS
+  if (typeof Sortable !== 'undefined') {
+    Sortable.create(list, {
+      handle: '.drag-handle',
+      animation: 150,
+      onEnd: async function() {
+        const items = list.querySelectorAll('.family-member-item');
+        const orderedIds = Array.from(items).map(item => item.dataset.memberId);
+        await updateFamilyOrder(orderedIds);
+      }
+    });
+  }
+}
+
+async function updateFamilyOrder(orderedIds) {
+  try {
+    const data = await apiFetch('/family/reorder', {
+      method: 'PUT',
+      body: JSON.stringify({ orderedIds })
+    });
+    if (data) {
+      state.familyMembers = data.members;
+      renderFamilySwitcher();
+    }
+  } catch (err) {
+    console.error('更新顺序失败:', err);
+  }
 }
 
 function openAddFamilyMemberForm() {
@@ -914,20 +957,158 @@ async function confirmDeleteUser() {
 }
 
 async function handleExport() {
-  try {
-    const data = await apiFetch('/export');
-    if (!data) return;
+  // Update selected count display
+  const selectedCount = state.selectedRecords.size;
+  const selectedCountEl = $('#exportSelectedCount');
+  const allCountEl = $('#exportAllCount');
 
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `医程记录_${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    showToast('导出成功', 'success');
+  if (allCountEl) allCountEl.textContent = `包含所有 ${state.records.length} 条就医记录`;
+  if (selectedCountEl) {
+    selectedCountEl.textContent = selectedCount > 0
+      ? `已选择 ${selectedCount} 条记录`
+      : '请先勾选要导出的记录';
+  }
+
+  // Disable "selected" option if nothing selected
+  const selectedRadio = document.querySelector('input[name="exportScope"][value="selected"]');
+  if (selectedRadio) {
+    selectedRadio.disabled = selectedCount === 0;
+    if (selectedCount === 0) {
+      document.querySelector('input[name="exportScope"][value="all"]').checked = true;
+    }
+  }
+
+  els.exportModal.classList.add('active');
+}
+
+function closeExportModal() {
+  els.exportModal.classList.remove('active');
+}
+
+async function confirmExport() {
+  const format = document.querySelector('input[name="exportFormat"]:checked').value;
+  const scope = document.querySelector('input[name="exportScope"]:checked').value;
+  closeExportModal();
+
+  try {
+    let recordsToExport;
+
+    if (scope === 'selected' && state.selectedRecords.size > 0) {
+      recordsToExport = state.records.filter(r => state.selectedRecords.has(r.id));
+    } else {
+      recordsToExport = state.records;
+    }
+
+    const exportData = { records: recordsToExport, count: recordsToExport.length };
+
+    if (format === 'json') {
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `医程记录_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('导出成功', 'success');
+    } else if (format === 'pdf') {
+      await generatePDF(exportData);
+    }
   } catch (err) {
     showToast(err.message || '导出失败', 'error');
+  }
+}
+
+async function generatePDF(data) {
+  const { jsPDF } = window.jspdf;
+
+  // Create a temporary HTML container for rendering
+  const container = document.createElement('div');
+  container.style.cssText = 'position: fixed; left: -9999px; top: 0; width: 800px; font-family: "Noto Sans SC", sans-serif; background: white; padding: 40px;';
+
+  // Build HTML content with proper Chinese text
+  let html = `
+    <div style="text-align: center; margin-bottom: 20px;">
+      <h1 style="color: #3B82F6; font-size: 24px; margin: 0;">健康记录报告</h1>
+      <p style="color: #64748B; font-size: 12px; margin-top: 8px;">生成日期：${new Date().toLocaleDateString('zh-CN')}</p>
+    </div>
+    <div style="border-top: 1px solid #E2E8F0; margin-bottom: 20px;"></div>
+  `;
+
+  const records = data.records || [];
+
+  records.forEach((record, index) => {
+    html += `
+      <div style="margin-bottom: 16px; page-break-inside: avoid;">
+        <div style="background: #F1F5F9; padding: 8px 12px; font-weight: bold; font-size: 14px; color: #1E293B;">
+          ${index + 1}. ${record.patient || '未知'} - ${record.date || '未知'}
+        </div>
+        <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
+          <tr><td style="color: #64748B; padding: 6px 12px; width: 80px;">医院</td><td style="color: #334155; padding: 6px 12px;">${record.hospital || '-'}</td></tr>
+          <tr><td style="color: #64748B; padding: 6px 12px;">科室</td><td style="color: #334155; padding: 6px 12px;">${record.department || '-'}</td></tr>
+          <tr><td style="color: #64748B; padding: 6px 12px;">诊断</td><td style="color: #334155; padding: 6px 12px;">${record.diagnosis || '-'}</td></tr>
+          <tr><td style="color: #64748B; padding: 6px 12px;">费用</td><td style="color: #334155; padding: 6px 12px; font-weight: bold;">${record.cost ? '¥' + record.cost.toFixed(2) : '-'}</td></tr>
+          ${record.doctor ? `<tr><td style="color: #64748B; padding: 6px 12px;">医生</td><td style="color: #334155; padding: 6px 12px;">${record.doctor}</td></tr>` : ''}
+          ${record.symptoms ? `<tr><td style="color: #64748B; padding: 6px 12px;">症状</td><td style="color: #334155; padding: 6px 12px;">${record.symptoms.substring(0, 100)}${record.symptoms.length > 100 ? '...' : ''}</td></tr>` : ''}
+          ${record.prescription ? `<tr><td style="color: #64748B; padding: 6px 12px;">医嘱</td><td style="color: #334155; padding: 6px 12px;">${record.prescription.substring(0, 100)}${record.prescription.length > 100 ? '...' : ''}</td></tr>` : ''}
+        </table>
+      </div>
+    `;
+  });
+
+  // Summary
+  const totalCost = records.reduce((sum, r) => sum + (r.cost || 0), 0);
+  html += `
+    <div style="border-top: 1px solid #E2E8F0; margin-top: 20px; padding-top: 16px;">
+      <h3 style="font-size: 14px; color: #1E293B; margin-bottom: 8px;">统计摘要</h3>
+      <p style="font-size: 12px; color: #64748B;">总记录数：${records.length} 条</p>
+      <p style="font-size: 12px; color: #64748B;">总费用：¥${totalCost.toFixed(2)}</p>
+    </div>
+  `;
+
+  container.innerHTML = html;
+  document.body.appendChild(container);
+
+  try {
+    // Use html2canvas to render the container to canvas
+    const canvas = await html2canvas(container, {
+      scale: 2,
+      useCORS: true,
+      logging: false
+    });
+
+    // Convert canvas to PDF
+    const imgData = canvas.toDataURL('image/png');
+    const imgWidth = 177; // A4 width - 2*margin
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    let yPos = 20;
+    const pageHeight = 297 - 40; // A4 height - 2*margin
+
+    // Handle multi-page if content is tall
+    let remainingHeight = imgHeight;
+    let sourceY = 0;
+
+    while (remainingHeight > 0) {
+      const sliceHeight = Math.min(pageHeight, remainingHeight);
+      const sourceSliceHeight = (sliceHeight / imgHeight) * canvas.height;
+
+      pdf.addImage(imgData, 'PNG', 20, yPos, imgWidth, imgHeight);
+
+      remainingHeight -= sliceHeight;
+      if (remainingHeight > 0) {
+        pdf.addPage();
+        yPos = 20 - (sliceHeight * (sourceY + sliceHeight) / imgHeight);
+      }
+    }
+
+    pdf.save(`健康报告_${new Date().toISOString().slice(0, 10)}.pdf`);
+    showToast('PDF导出成功', 'success');
+  } catch (err) {
+    console.error('PDF生成失败:', err);
+    showToast('PDF导出失败', 'error');
+  } finally {
+    document.body.removeChild(container);
   }
 }
 
@@ -955,6 +1136,7 @@ async function loadStats() {
     renderCostTrendChart(data.monthlyFrequency);
     renderDepartmentPieChart(data.departments);
     renderHealthTimeline(state.records);
+    renderMiniCostChart(data.monthlyFrequency);
   } catch (err) {
     console.error('加载统计失败:', err);
   }
@@ -1057,6 +1239,23 @@ function renderDepartmentPieChart(departments) {
       cutout: '60%'
     }
   });
+}
+
+function renderMiniCostChart(monthlyData) {
+  const container = $('#miniCostChart');
+  const labelsContainer = $('#miniCostLabels');
+  if (!container || !labelsContainer) return;
+
+  const last6 = monthlyData.slice(-6);
+  const costs = last6.map(m => m.cost || 0);
+  const maxCost = Math.max(...costs, 1);
+
+  container.innerHTML = costs.map(cost => {
+    const height = Math.max((cost / maxCost) * 100, 5);
+    return `<div class="mini-cost-bar" style="height: ${height}%" title="¥${cost.toFixed(0)}"></div>`;
+  }).join('');
+
+  labelsContainer.innerHTML = last6.map(m => `<span>${m.label}</span>`).join('');
 }
 
 function renderHealthTimeline(records) {
@@ -1592,7 +1791,7 @@ async function handleFormSubmit(e) {
   setButtonLoading(btn, true);
 
   try {
-    const recordId = els.recordForm['recordId'].value;
+    const recordId = els.recordForm['recordId']?.value;
 
     if (recordId) {
       const data = await apiFetch(`/records/${recordId}`, {
@@ -1633,6 +1832,41 @@ function handleEditFromDetail() {
 
 function handleDeleteRecord() {
   openDeleteConfirm();
+}
+
+function handleDuplicateRecord() {
+  const record = state.records.find(r => r.id === state.currentRecordId);
+  if (!record) {
+    showToast('未找到记录', 'error');
+    return;
+  }
+
+  closeDetailModal();
+
+  // Open a fresh modal for new record (no recordId = create mode)
+  openModal();
+
+  // Fill the form with the record data to copy
+  els.modalTitle.textContent = '复制创建';
+
+  // Select the same member
+  const memberSelect = els.recordForm['recordMember'];
+  if (record.memberId) {
+    memberSelect.value = record.memberId;
+  }
+
+  els.recordForm['recordDate'].value = new Date().toISOString().split('T')[0];
+  els.recordForm['recordHospital'].value = record.hospital || '';
+  els.recordForm['recordDepartment'].value = record.department || '';
+  els.recordForm['recordDoctor'].value = record.doctor || '';
+  els.recordForm['recordDiagnosis'].value = record.diagnosis || '';
+  els.recordForm['recordSymptoms'].value = record.symptoms || '';
+  els.recordForm['recordPrescription'].value = record.prescription || '';
+  els.recordForm['recordCost'].value = record.cost || '';
+
+  // Clear images - don't copy them
+  state.pendingImages = [];
+  renderPendingImages();
 }
 
 async function handleChangePassword(e) {

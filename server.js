@@ -487,7 +487,7 @@ app.get('/api/stats', authenticate, async (req, res) => {
         const rd = new Date(r.date);
         return rd.getMonth() === d.getMonth() && rd.getFullYear() === d.getFullYear();
       });
-      months.push({ label: `${d.getMonth() + 1}月`, count: monthRecords.length });
+      months.push({ label: `${d.getMonth() + 1}月`, count: monthRecords.length, cost: monthRecords.reduce((s, r) => s + (r.cost || 0), 0) });
     }
 
     res.json({
@@ -707,6 +707,40 @@ app.post('/api/family/switch', authenticate, async (req, res) => {
   } catch (err) {
     console.error('切换家庭成员失败:', err);
     res.status(500).json({ error: '切换家庭成员失败' });
+  }
+});
+
+// Reorder family members
+app.put('/api/family/reorder', authenticate, async (req, res) => {
+  try {
+    const { orderedIds } = req.body;
+    if (!Array.isArray(orderedIds)) {
+      return res.status(400).json({ error: '无效的请求参数' });
+    }
+
+    const users = await getUsers();
+    const userIndex = users.findIndex(u => u.userId === req.userId);
+    if (userIndex === -1) {
+      return res.status(404).json({ error: '用户不存在' });
+    }
+
+    const members = users[userIndex].familyMembers || [];
+    const reordered = [];
+    orderedIds.forEach((id, index) => {
+      const member = members.find(m => m.memberId === id);
+      if (member) {
+        member.order = index;
+        reordered.push(member);
+      }
+    });
+
+    users[userIndex].familyMembers = reordered;
+    await saveUsers(users);
+
+    res.json({ success: true, members: reordered });
+  } catch (err) {
+    console.error('更新成员顺序失败:', err);
+    res.status(500).json({ error: '更新成员顺序失败' });
   }
 });
 

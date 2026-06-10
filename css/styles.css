@@ -2299,3 +2299,165 @@ input:checked + .slider:before {
     justify-content: center;
   }
 }
+
+/* Export Modal */
+.export-scope,
+.export-format {
+  margin-bottom: 20px;
+}
+
+.export-scope h4,
+.export-format h4 {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+}
+
+.export-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.export-option {
+  cursor: pointer;
+}
+
+.export-option input[type="radio"] {
+  display: none;
+}
+
+.export-option-content {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  transition: all 0.2s;
+}
+
+.export-option-content svg {
+  width: 32px;
+  height: 32px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.export-option-title {
+  display: block;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.export-option-desc {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.export-option input[type="radio"]:checked + .export-option-content {
+  border-color: var(--primary);
+  background: var(--primary-bg);
+}
+
+.export-option input[type="radio"]:checked + .export-option-content svg {
+  color: var(--primary);
+}
+
+.export-option input[type="radio"]:disabled + .export-option-content {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.export-option input[type="radio"]:disabled + .export-option-content:hover {
+  border-color: var(--border);
+}
+
+.export-option-content:hover {
+  border-color: var(--primary);
+}
+
+.export-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.export-actions .btn {
+  min-width: 100px;
+}
+
+/* Drag Handle */
+.drag-handle {
+  cursor: grab;
+  padding: 4px;
+  color: var(--text-muted);
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.drag-handle svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Family Member Item */
+.family-member-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Mini Cost Chart */
+.mini-cost-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 48px;
+  margin-top: 8px;
+}
+
+.mini-cost-bar {
+  flex: 1;
+  background: var(--primary);
+  border-radius: 2px 2px 0 0;
+  min-height: 2px;
+  transition: height 0.3s ease;
+  opacity: 0.8;
+}
+
+.mini-cost-bar:hover {
+  opacity: 1;
+}
+
+.mini-cost-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+
+.mini-cost-labels span {
+  font-size: 0.625rem;
+  color: var(--text-muted);
+}
+
+/* Sidebar Cost Trend */
+.sidebar-cost-trend {
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+
+.sidebar-cost-trend h3 {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+}
