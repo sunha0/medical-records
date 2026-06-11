@@ -2189,12 +2189,23 @@ input:checked + .slider:before {
 }
 
 .record-card:hover .card-checkbox,
-.record-card.selected .card-checkbox {
+.record-card.selected .card-checkbox,
+body.batch-mode .record-card .card-checkbox {
   opacity: 1;
+}
+
+body.batch-mode .record-card {
+  padding-left: 44px;
+}
+
+body.batch-mode .card-checkbox input {
+  width: 22px;
+  height: 22px;
 }
 
 .record-card.selected {
   box-shadow: 0 0 0 2px var(--primary);
+  background: var(--primary-bg);
 }
 
 .card-checkbox input {

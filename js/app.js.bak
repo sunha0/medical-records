@@ -1354,11 +1354,8 @@ function updateSidebarReminders() {
 
 // Batch Operations
 function toggleBatchMode() {
-  console.log('[Batch] Toggling batch mode, current:', state.batchMode, '->', !state.batchMode);
   state.batchMode = !state.batchMode;
   state.selectedRecords.clear();
-
-  document.body.classList.toggle('batch-mode', state.batchMode);
 
   const batchBar = $('#batchActionsBar');
   const cards = els.recordsList.querySelectorAll('.record-card');
@@ -1374,9 +1371,6 @@ function toggleBatchMode() {
   if (batchBar) {
     batchBar.classList.toggle('active', state.batchMode);
   }
-
-  // Re-render to show/hide checkboxes
-  renderRecords();
 
   updateBatchCount();
 }
