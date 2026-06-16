@@ -644,46 +644,6 @@ function viewReminderRecord(recordId) {
   }
 }
 
-async function loadStats() {
-  const token = getToken();
-  if (!token) return;
-
-  try {
-    const data = await apiFetch('/stats');
-    if (!data) return;
-
-    els.monthRecords.textContent = data.thisMonth.count;
-    els.monthCost.textContent = '¥' + data.thisMonth.cost.toFixed(0);
-    els.totalCost.textContent = '¥' + data.lastYear.cost.toFixed(0);
-
-    // Department chart
-    const sortedDepts = data.departments;
-    const maxCount = sortedDepts[0]?.[1] || 1;
-    els.departmentList.innerHTML = sortedDepts.map(([dept, count]) => `
-      <div class="dept-item">
-        <span class="dept-name">${escapeHtml(dept)}</span>
-        <div class="dept-bar" style="width: ${(count / maxCount) * 100}%"></div>
-        <span class="dept-count">${count}次</span>
-      </div>
-    `).join('');
-
-    // Monthly frequency chart
-    const months = data.monthlyFrequency;
-    const maxMonthCount = Math.max(...months.map(m => m.count), 1);
-    const chartHeight = 100;
-    els.frequencyChart.innerHTML = months.map(m => {
-      const h = maxMonthCount > 0 ? Math.max((m.count / maxMonthCount) * chartHeight, m.count > 0 ? 5 : 0) : 0;
-      return `
-        <div class="bar-wrapper" title="${m.count}次就医">
-          <div class="bar" style="height: ${h}px"></div>
-          <span class="bar-label">${m.label}</span>
-        </div>`;
-    }).join('');
-  } catch (err) {
-    console.error('加载统计失败:', err);
-  }
-}
-
 async function loadUsers() {
   if (!state.isAdmin) return;
 
@@ -1143,13 +1103,14 @@ async function loadStats() {
     const data = await apiFetch('/stats');
     if (!data) return;
 
-    els.monthRecords.textContent = data.thisMonth.count;
-    els.monthCost.textContent = '¥' + data.thisMonth.cost.toFixed(0);
-    els.totalCost.textContent = '¥' + data.lastYear.cost.toFixed(0);
+    if (els.monthRecords) els.monthRecords.textContent = data.thisMonth.count;
+    if (els.monthCost) els.monthCost.textContent = '¥' + data.thisMonth.cost.toFixed(0);
+    if (els.totalCost) els.totalCost.textContent = '¥' + data.lastYear.cost.toFixed(0);
 
     // Render charts
     renderCostTrendChart(data.monthlyFrequency);
     renderDepartmentPieChart(data.departments);
+    renderFrequencyChart(data.monthlyFrequency);
     renderHealthTimeline(state.records);
     renderMiniCostChart(data.monthlyFrequency);
   } catch (err) {
@@ -1271,6 +1232,22 @@ function renderMiniCostChart(monthlyData) {
   }).join('');
 
   labelsContainer.innerHTML = last6.map(m => `<span>${m.label}</span>`).join('');
+}
+
+function renderFrequencyChart(monthlyData) {
+  const container = $('#frequencyChart');
+  if (!container) return;
+
+  const maxCount = Math.max(...monthlyData.map(m => m.count), 1);
+  const chartHeight = 100;
+  container.innerHTML = monthlyData.map(m => {
+    const h = maxCount > 0 ? Math.max((m.count / maxCount) * chartHeight, m.count > 0 ? 5 : 0) : 0;
+    return `
+      <div class="bar-wrapper" title="${m.count}次就医">
+        <div class="bar" style="height: ${h}px"></div>
+        <span class="bar-label">${m.label}</span>
+      </div>`;
+  }).join('');
 }
 
 function renderHealthTimeline(records) {
@@ -1593,8 +1570,8 @@ function updateSidebarStats() {
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
   });
 
-  els.monthRecords.textContent = thisMonth.length;
-  els.monthCost.textContent = '¥' + thisMonth.reduce((sum, r) => sum + (r.cost || 0), 0).toFixed(0);
+  if (els.monthRecords) els.monthRecords.textContent = thisMonth.length;
+  if (els.monthCost) els.monthCost.textContent = '¥' + thisMonth.reduce((sum, r) => sum + (r.cost || 0), 0).toFixed(0);
 }
 
 // ===========================

@@ -43,7 +43,6 @@ require('./src/routes/records')(app);
 require('./src/routes/upload')(app);
 require('./src/routes/stats')(app);
 require('./src/routes/reminders')(app);
-require('./src/routes/admin')(app);
 
 // --- Admin Guard for /api/admin routes ---
 app.use('/api/admin', (req, res, next) => {
@@ -52,6 +51,8 @@ app.use('/api/admin', (req, res, next) => {
   }
   next();
 });
+
+require('./src/routes/admin')(app);
 
 // --- Global Error Handler ---
 app.use((err, req, res, next) => {

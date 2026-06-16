@@ -11,11 +11,7 @@ module.exports = function(app) {
 
       let records = await getUserRecords(req.userId);
 
-      // Member filter - use query param or activeMemberId from settings
-      const effectiveMemberId = memberId || (() => {
-        const users = getUsers();  // getUsers is async, so this won't work synchronously
-        return null;
-      })();
+      // Apply member filter
       if (memberId) {
         records = records.filter(r => r.memberId === memberId);
       } else {
