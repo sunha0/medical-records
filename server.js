@@ -45,6 +45,7 @@ require('./src/routes/stats')(app);
 require('./src/routes/reminders')(app);
 require('./src/routes/metrics')(app);
 require('./src/routes/medications')(app);
+require('./src/routes/import')(app);
 
 // --- Admin Guard for /api/admin routes ---
 app.use('/api/admin', (req, res, next) => {

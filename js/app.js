@@ -36,7 +36,9 @@ const state = {
   calendarMonth: new Date().getMonth(),
   calendarSelectedDate: null,
   // Metrics
-  metricsChart: null
+  metricsChart: null,
+  // Templates
+  templates: JSON.parse(localStorage.getItem('recordTemplates') || '[]')
 };
 
 const $ = (sel) => document.querySelector(sel);
@@ -157,7 +159,26 @@ const els = {
   // Reminder List Modal
   reminderListModal: $('#reminderListModal'),
   reminderListContainer: $('#reminderListContainer'),
-  reminderListSubtitle: $('#reminderListSubtitle')
+  reminderListSubtitle: $('#reminderListSubtitle'),
+  // Templates
+  templateSelect: $('#templateSelect'),
+  saveTemplateBtn: $('#saveTemplateBtn'),
+  deleteTemplateBtn: $('#deleteTemplateBtn'),
+  // Import
+  importBtn: $('#importBtn'),
+  importModal: $('#importModal'),
+  importModalClose: $('#importModalClose'),
+  importFileInput: $('#importFileInput'),
+  importDropZone: $('#importDropZone'),
+  importPreview: $('#importPreview'),
+  importModeGroup: $('#importModeGroup'),
+  importConfirmBtn: $('#importConfirmBtn'),
+  importCancelBtn: $('#importCancelBtn'),
+  // Timeline
+  timelineContainer: $('#timelineContainer'),
+  timelineMemberFilter: $('#timelineMemberFilter'),
+  timelineStartDate: $('#timelineStartDate'),
+  timelineEndDate: $('#timelineEndDate')
 };
 
 // ===========================
@@ -166,6 +187,7 @@ const els = {
 document.addEventListener('DOMContentLoaded', () => {
   initEventListeners();
   checkLogin();
+  setInterval(loadDueReminders, 300000);
 });
 
 function getToken() {
@@ -446,6 +468,34 @@ function initEventListeners() {
   els.exportConfirmBtn && els.exportConfirmBtn.addEventListener('click', confirmExport);
   els.exportModal && els.exportModal.querySelector('.modal-backdrop').addEventListener('click', closeExportModal);
 
+  // Import
+  els.importBtn && els.importBtn.addEventListener('click', openImportModal);
+  els.importModalClose && els.importModalClose.addEventListener('click', closeImportModal);
+  els.importCancelBtn && els.importCancelBtn.addEventListener('click', closeImportModal);
+  els.importModal && els.importModal.querySelector('.modal-backdrop').addEventListener('click', closeImportModal);
+  els.importDropZone && els.importDropZone.addEventListener('click', () => els.importFileInput.click());
+  els.importDropZone && els.importDropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    els.importDropZone.style.borderColor = 'var(--primary)';
+    els.importDropZone.style.background = 'var(--primary-light)';
+  });
+  els.importDropZone && els.importDropZone.addEventListener('dragleave', () => {
+    els.importDropZone.style.borderColor = '';
+    els.importDropZone.style.background = '';
+  });
+  els.importDropZone && els.importDropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    els.importDropZone.style.borderColor = '';
+    els.importDropZone.style.background = '';
+    const file = e.dataTransfer.files[0];
+    if (file) handleImportFile(file);
+  });
+  els.importFileInput && els.importFileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) handleImportFile(file);
+  });
+  els.importConfirmBtn && els.importConfirmBtn.addEventListener('click', confirmImport);
+
   // Load more
   els.loadMoreBtn && els.loadMoreBtn.addEventListener('click', handleLoadMore);
 
@@ -577,6 +627,14 @@ function initEventListeners() {
     if (state.calendarMonth > 11) { state.calendarMonth = 0; state.calendarYear += 1; }
     renderCalendar();
   });
+
+  // --- Template Event Listeners ---
+  els.templateSelect && els.templateSelect.addEventListener('change', (e) => {
+    const val = e.target.value;
+    if (val !== '') loadTemplate(parseInt(val));
+  });
+  els.saveTemplateBtn && els.saveTemplateBtn.addEventListener('click', saveTemplate);
+  els.deleteTemplateBtn && els.deleteTemplateBtn.addEventListener('click', deleteTemplate);
 }
 
 async function handleLogin(e) {
@@ -718,6 +776,9 @@ async function loadDueReminders() {
       renderOverviewCards();
       if (data.count > 0) {
         showToast(`您有 ${data.count} 条复诊提醒待处理`, 'warning');
+        if (!document.hasFocus()) {
+          showDesktopNotification('复诊提醒', `您有 ${data.count} 条复诊提醒待处理`);
+        }
       }
     }
   } catch (err) {
@@ -1145,6 +1206,112 @@ async function confirmExport() {
   }
 }
 
+// ===========================
+// Import
+// ===========================
+let importFileData = null;
+
+function openImportModal() {
+  importFileData = null;
+  els.importPreview.style.display = 'none';
+  els.importModeGroup.style.display = 'none';
+  els.importConfirmBtn.disabled = true;
+  els.importFileInput.value = '';
+  els.importDropZone.querySelector('p').innerHTML = '将 JSON 文件拖拽到此处，或 <span style="color:var(--primary);cursor:pointer;">点击选择文件</span>';
+  els.importModal.classList.add('active');
+}
+
+function closeImportModal() {
+  els.importModal.classList.remove('active');
+  importFileData = null;
+}
+
+function handleImportFile(file) {
+  if (!file.name.endsWith('.json')) {
+    showToast('请选择 JSON 格式的文件', 'error');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      const records = data.records || data;
+      if (!Array.isArray(records) || records.length === 0) {
+        showToast('文件中没有有效的就医记录', 'error');
+        return;
+      }
+
+      // Validate required fields
+      for (let i = 0; i < Math.min(records.length, 5); i++) {
+        const r = records[i];
+        if (!r.date || !r.hospital || !r.department || !r.diagnosis) {
+          showToast(`第 ${i + 1} 条记录缺少必填字段（date/hospital/department/diagnosis）`, 'error');
+          return;
+        }
+      }
+
+      importFileData = records;
+      renderImportPreview(records);
+      els.importModeGroup.style.display = 'block';
+      els.importConfirmBtn.disabled = false;
+      showToast(`文件有效，共 ${records.length} 条记录`, 'success');
+    } catch (err) {
+      showToast('文件解析失败，请确保是有效的 JSON 文件', 'error');
+    }
+  };
+  reader.readAsText(file);
+}
+
+function renderImportPreview(records) {
+  const dates = records.map(r => r.date).filter(Boolean).sort();
+  const hospitals = [...new Set(records.map(r => r.hospital).filter(Boolean))];
+  const totalCost = records.reduce((s, r) => s + (r.cost || 0), 0);
+
+  els.importPreview.style.display = 'block';
+  els.importPreview.innerHTML = `
+    <div class="stats-card" style="padding:16px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div><span style="color:var(--text-muted);font-size:0.85rem;">记录总数</span><br><strong style="font-size:1.2rem;">${records.length}</strong></div>
+        <div><span style="color:var(--text-muted);font-size:0.85rem;">总费用</span><br><strong style="font-size:1.2rem;">¥${totalCost.toFixed(0)}</strong></div>
+        <div><span style="color:var(--text-muted);font-size:0.85rem;">日期范围</span><br><strong>${dates[0] || '-'} ~ ${dates[dates.length - 1] || '-'}</strong></div>
+        <div><span style="color:var(--text-muted);font-size:0.85rem;">涉及医院</span><br><strong>${hospitals.length} 家</strong></div>
+      </div>
+      <div style="margin-top:8px;font-size:0.85rem;color:var(--text-muted);">${hospitals.slice(0, 3).join('、')}${hospitals.length > 3 ? ` 等${hospitals.length}家` : ''}</div>
+    </div>
+  `;
+}
+
+async function confirmImport() {
+  const mode = document.querySelector('input[name="importMode"]:checked').value;
+  if (!importFileData || importFileData.length === 0) return;
+
+  if (mode === 'replace') {
+    if (!confirm('替换导入将删除所有现有记录，此操作不可撤销。是否继续？')) return;
+  }
+
+  els.importConfirmBtn.disabled = true;
+  els.importConfirmBtn.textContent = '导入中...';
+
+  try {
+    const data = await apiFetch('/import', {
+      method: 'POST',
+      body: JSON.stringify({ records: importFileData, mode })
+    });
+
+    if (data && data.success) {
+      showToast(`成功导入 ${data.count} 条记录`, 'success');
+      closeImportModal();
+      loadData();
+    }
+  } catch (err) {
+    showToast(err.message || '导入失败', 'error');
+    els.importConfirmBtn.disabled = false;
+  } finally {
+    els.importConfirmBtn.textContent = '开始导入';
+  }
+}
+
 async function generatePDF(data) {
   const { jsPDF } = window.jspdf;
 
@@ -1336,6 +1503,7 @@ async function loadStats() {
     // Render charts
     renderCostTrendChart(data.monthlyFrequency);
     renderDepartmentPieChart(data.departments);
+    renderDepartmentCostChart(data.departmentCosts);
     renderFrequencyChart(data.monthlyFrequency);
     renderHealthTimeline(state.records);
     renderMiniCostChart(data.monthlyFrequency);
@@ -1346,6 +1514,7 @@ async function loadStats() {
 
 let costTrendChart = null;
 let departmentPieChart = null;
+let departmentCostChart = null;
 
 function renderCostTrendChart(monthlyData) {
   const ctx = $('#costTrendChart');
@@ -1356,14 +1525,14 @@ function renderCostTrendChart(monthlyData) {
   }
 
   const labels = monthlyData.map(m => m.label);
-  const values = monthlyData.map(m => m.count);
+  const values = monthlyData.map(m => m.cost);
 
   costTrendChart = new Chart(ctx, {
     type: 'line',
     data: {
       labels,
       datasets: [{
-        label: '就医次数',
+        label: '医疗费用',
         data: values,
         borderColor: '#3B82F6',
         backgroundColor: 'rgba(59, 130, 246, 0.1)',
@@ -1385,13 +1554,18 @@ function renderCostTrendChart(monthlyData) {
           titleColor: '#F8FAFC',
           bodyColor: '#CBD5E1',
           padding: 12,
-          cornerRadius: 8
+          cornerRadius: 8,
+          callbacks: {
+            label: ctx => '¥' + (ctx.parsed.y || 0).toFixed(0)
+          }
         }
       },
       scales: {
         y: {
           beginAtZero: true,
-          ticks: { stepSize: 1 },
+          ticks: {
+            callback: val => '¥' + val
+          },
           grid: { color: 'rgba(148, 163, 184, 0.1)' }
         },
         x: {
@@ -1439,6 +1613,60 @@ function renderDepartmentPieChart(departments) {
         }
       },
       cutout: '60%'
+    }
+  });
+}
+
+function renderDepartmentCostChart(deptData) {
+  const ctx = $('#departmentCostChart');
+  if (!ctx) return;
+
+  if (departmentCostChart) {
+    departmentCostChart.destroy();
+  }
+
+  if (!deptData || deptData.length === 0) {
+    ctx.parentNode.innerHTML = '<div style="text-align:center;padding:40px;color:#94A3B8;">暂无费用数据</div>';
+    return;
+  }
+
+  const labels = deptData.map(d => d[0]);
+  const values = deptData.map(d => d[1]);
+  const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316'];
+
+  departmentCostChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: '费用',
+        data: values,
+        backgroundColor: colors.slice(0, labels.length),
+        borderRadius: 4
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => '¥' + (ctx.parsed.x || 0).toFixed(0)
+          }
+        }
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          ticks: { callback: val => '¥' + val },
+          grid: { color: 'rgba(148, 163, 184, 0.1)' }
+        },
+        y: {
+          grid: { display: false }
+        }
+      }
     }
   });
 }
@@ -1977,6 +2205,95 @@ function showCalendarEvents(date, records, reminders) {
   els.calendarEventsList.innerHTML = html;
 }
 
+// ===========================
+// Timeline
+// ===========================
+function renderTimeline() {
+  if (!els.timelineContainer) return;
+
+  let records = [...state.records];
+
+  // Populate member filter
+  populateTimelineFilter();
+
+  // Apply member filter
+  const memberId = els.timelineMemberFilter ? els.timelineMemberFilter.value : '';
+  if (memberId) {
+    records = records.filter(r => r.memberId === memberId);
+  }
+
+  // Apply date range
+  const startDate = els.timelineStartDate ? els.timelineStartDate.value : '';
+  const endDate = els.timelineEndDate ? els.timelineEndDate.value : '';
+  if (startDate) records = records.filter(r => r.date >= startDate);
+  if (endDate) records = records.filter(r => r.date <= endDate);
+
+  if (records.length === 0) {
+    els.timelineContainer.innerHTML = '<div class="timeline-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48" style="color:var(--text-muted);margin-bottom:12px;"><path d="M22 12H2M8 19l-4-4 4-4M16 5l4 4-4 4"/><circle cx="12" cy="12" r="3"/></svg><p>暂无就医记录</p></div>';
+    return;
+  }
+
+  // Sort by date descending
+  records.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  // Group by year-month
+  const groups = {};
+  records.forEach(r => {
+    const key = r.date.slice(0, 7);
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(r);
+  });
+
+  const sortedMonths = Object.keys(groups).sort((a, b) => b.localeCompare(a));
+
+  let html = '';
+  sortedMonths.forEach(month => {
+    const items = groups[month];
+    const totalCost = items.reduce((s, r) => s + (r.cost || 0), 0);
+    const [year, m] = month.split('-');
+    html += `<div class="timeline-month-group">
+      <div class="timeline-month-header">
+        <span class="timeline-month-label">${year}年${parseInt(m)}月</span>
+        <span class="timeline-month-stats">${items.length} 次就诊 · ¥${totalCost.toFixed(0)}</span>
+      </div>
+      <div class="timeline-entries">`;
+
+    items.forEach((r, i) => {
+      const isLast = i === items.length - 1;
+      html += `<div class="timeline-entry${isLast ? ' last' : ''}">
+        <div class="timeline-dot"></div>
+        ${isLast ? '' : '<div class="timeline-line"></div>'}
+        <div class="timeline-card" onclick="openDetailModal('${r.id}')">
+          <div class="timeline-card-header">
+            <span class="timeline-date">${formatDate(r.date)}</span>
+            ${r.cost ? `<span class="timeline-cost">¥${r.cost}</span>` : ''}
+          </div>
+          <div class="timeline-card-body">
+            <div class="timeline-hospital">${escapeHtml(r.hospital)}</div>
+            <div class="timeline-dept">${escapeHtml(r.department)} · ${escapeHtml(r.doctor || '未知医生')}</div>
+            <div class="timeline-diagnosis">${escapeHtml(r.diagnosis)}</div>
+            ${r.symptoms ? `<div class="timeline-symptoms">症状：${escapeHtml(r.symptoms)}</div>` : ''}
+          </div>
+        </div>
+      </div>`;
+    });
+
+    html += `</div></div>`;
+  });
+
+  els.timelineContainer.innerHTML = html;
+}
+
+function populateTimelineFilter() {
+  if (!els.timelineMemberFilter) return;
+  const currentVal = els.timelineMemberFilter.value;
+  els.timelineMemberFilter.innerHTML = '<option value="">全部成员</option>' +
+    state.familyMembers.map(m =>
+      `<option value="${m.memberId}">${escapeHtml(m.name)}</option>`
+    ).join('');
+  if (currentVal) els.timelineMemberFilter.value = currentVal;
+}
+
 function populateMemberSelect(selectEl) {
   if (!selectEl) return;
   selectEl.innerHTML = state.familyMembers.map(m =>
@@ -2008,6 +2325,8 @@ function switchView(view) {
   } else if (view === 'calendar') {
     loadReminders();
     renderCalendar();
+  } else if (view === 'timeline') {
+    renderTimeline();
   } else {
     // records and photos views need render()
     render();
@@ -2505,12 +2824,70 @@ function openModal(recordId = null) {
 
   els.recordModal.classList.add('active');
   document.body.style.overflow = 'hidden';
+  populateTemplateSelect();
 }
 
 function closeModal() {
   els.recordModal.classList.remove('active');
   document.body.style.overflow = '';
   state.editingRecord = null;
+}
+
+// ===========================
+// Templates
+// ===========================
+function populateTemplateSelect() {
+  const sel = els.templateSelect;
+  if (!sel) return;
+  sel.innerHTML = '<option value="">从模板加载...</option>' +
+    state.templates.map((t, i) => `<option value="${i}">${escapeHtml(t.name)}</option>`).join('');
+}
+
+function saveTemplate() {
+  const name = prompt('请输入模板名称：');
+  if (!name) return;
+  const data = {
+    name,
+    hospital: els.recordForm['recordHospital'].value,
+    department: els.recordForm['recordDepartment'].value,
+    doctor: els.recordForm['recordDoctor'].value,
+    diagnosis: els.recordForm['recordDiagnosis'].value,
+    symptoms: els.recordForm['recordSymptoms'].value,
+    prescription: els.recordForm['recordPrescription'].value
+  };
+  if (!data.hospital && !data.department && !data.diagnosis) {
+    showToast('请至少填写医院、科室或诊断结果', 'warning');
+    return;
+  }
+  state.templates.push(data);
+  localStorage.setItem('recordTemplates', JSON.stringify(state.templates));
+  populateTemplateSelect();
+  showToast('模板保存成功', 'success');
+}
+
+function loadTemplate(index) {
+  const t = state.templates[index];
+  if (!t) return;
+  els.recordForm['recordHospital'].value = t.hospital || '';
+  els.recordForm['recordDepartment'].value = t.department || '';
+  els.recordForm['recordDoctor'].value = t.doctor || '';
+  els.recordForm['recordDiagnosis'].value = t.diagnosis || '';
+  els.recordForm['recordSymptoms'].value = t.symptoms || '';
+  els.recordForm['recordPrescription'].value = t.prescription || '';
+}
+
+function deleteTemplate() {
+  const sel = els.templateSelect;
+  const idx = parseInt(sel.value);
+  if (isNaN(idx) || idx < 0 || idx >= state.templates.length) {
+    showToast('请先选择一个模板', 'warning');
+    return;
+  }
+  if (!confirm(`确认删除模板"${state.templates[idx].name}"？`)) return;
+  state.templates.splice(idx, 1);
+  localStorage.setItem('recordTemplates', JSON.stringify(state.templates));
+  populateTemplateSelect();
+  showToast('模板已删除', 'success');
 }
 
 function openDetailModal(recordId) {
@@ -2900,6 +3277,21 @@ function showToast(message, type = 'info') {
   toast.innerHTML = `<span class="toast-icon">${iconMap[type] || iconMap.info}</span><span class="toast-message">${escapeHtml(message)}</span>`;
   toast.className = `toast visible ${type}`;
   setTimeout(() => { toast.classList.remove('visible'); }, 3000);
+}
+
+function showDesktopNotification(title, body) {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'granted') {
+    const n = new Notification(title, { body, icon: '/favicon.ico' });
+    n.onclick = () => { window.focus(); n.close(); };
+  } else if (Notification.permission === 'default') {
+    Notification.requestPermission().then(perm => {
+      if (perm === 'granted') {
+        const n = new Notification(title, { body, icon: '/favicon.ico' });
+        n.onclick = () => { window.focus(); n.close(); };
+      }
+    });
+  }
 }
 
 function debounce(fn, delay) {

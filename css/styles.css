@@ -3124,3 +3124,164 @@ body.batch-mode .card-checkbox input {
     grid-template-columns: 1fr;
   }
 }
+
+/* ===========================
+   Treatment Timeline View
+   =========================== */
+.timeline-container {
+  padding: 4px 0;
+}
+
+.timeline-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.timeline-empty p {
+  font-size: 0.9375rem;
+}
+
+.timeline-month-group {
+  margin-bottom: 32px;
+}
+
+.timeline-month-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-left: 28px;
+}
+
+.timeline-month-header .timeline-month-label {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.timeline-month-stats {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.timeline-entries {
+  position: relative;
+  padding-left: 28px;
+}
+
+.timeline-entries::before {
+  content: '';
+  position: absolute;
+  left: 10px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--border);
+  border-radius: 1px;
+}
+
+.timeline-entry {
+  position: relative;
+  padding-bottom: 16px;
+}
+
+.timeline-entry.last {
+  padding-bottom: 0;
+}
+
+.timeline-entry .timeline-dot {
+  position: absolute;
+  left: -22px;
+  top: 6px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #3B82F6;
+  border: 2px solid var(--surface);
+  z-index: 1;
+  flex-shrink: 0;
+}
+
+.timeline-entry .timeline-line {
+  display: none; /* replaced by ::before on .timeline-entries */
+}
+
+.timeline-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: box-shadow 0.2s, transform 0.2s;
+  position: relative;
+}
+
+.timeline-card:hover {
+  box-shadow: var(--shadow);
+  transform: translateY(-1px);
+}
+
+.timeline-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.timeline-date {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.timeline-cost {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.timeline-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.timeline-hospital {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.timeline-dept {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.timeline-diagnosis {
+  font-size: 0.875rem;
+  color: var(--text);
+  margin-top: 2px;
+}
+
+.timeline-symptoms {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+  font-style: italic;
+}
+
+@media (max-width: 600px) {
+  .timeline-month-header {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .timeline-card {
+    padding: 12px;
+  }
+}

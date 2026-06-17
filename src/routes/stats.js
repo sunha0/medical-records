@@ -30,6 +30,13 @@ module.exports = function(app) {
       records.forEach(r => { depts[r.department] = (depts[r.department] || 0) + 1; });
       const sortedDepts = Object.entries(depts).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
+      const deptCosts = {};
+      records.forEach(r => {
+        const cost = r.cost || 0;
+        if (cost > 0) deptCosts[r.department] = (deptCosts[r.department] || 0) + cost;
+      });
+      const sortedDeptCosts = Object.entries(deptCosts).sort((a, b) => b[1] - a[1]).slice(0, 8);
+
       const months = [];
       for (let i = 5; i >= 0; i--) {
         const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
@@ -44,6 +51,7 @@ module.exports = function(app) {
         thisMonth: { count: thisMonth.length, cost: thisMonth.reduce((s, r) => s + (r.cost || 0), 0) },
         lastYear: { count: lastYear.length, cost: lastYear.reduce((s, r) => s + (r.cost || 0), 0) },
         departments: sortedDepts,
+        departmentCosts: sortedDeptCosts,
         monthlyFrequency: months
       });
     } catch (err) {
