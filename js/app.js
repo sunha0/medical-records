@@ -490,7 +490,7 @@ function initEventListeners() {
 
   // Update unit when metric type changes
   els.metricType && els.metricType.addEventListener('change', (e) => {
-    const units = { blood_pressure: 'mmHg', blood_sugar: 'mmol/L', weight: 'kg', heart_rate: '次/分' };
+    const units = { blood_pressure: 'mmHg', blood_sugar: 'mmol/L', weight: 'kg', heart_rate: '次/分', height: 'cm' };
     els.metricUnit.value = units[e.target.value] || '';
   });
 
@@ -1399,12 +1399,18 @@ function renderMetrics(metrics) {
   }
   els.metricsEmpty.style.display = 'none';
 
+  const typeLabels = { blood_pressure: '血压', blood_sugar: '血糖', weight: '体重', heart_rate: '心率', height: '身高' };
+  const icons = {
+    blood_pressure: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" width="18" height="18"><path d="M10 17l-5-5a3.5 3.5 0 1 1 5-5 3.5 3.5 0 1 1 5 5l-5 5z"/></svg>',
+    blood_sugar: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" width="18" height="18"><path d="M10 3l4 5a5 5 0 1 1-8 0l4-5z"/></svg>',
+    weight: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" width="18" height="18"><line x1="10" y1="3" x2="10" y2="5"/><line x1="6" y1="5" x2="14" y2="5"/><path d="M3 17h14l-2-7H5L3 17z"/></svg>',
+    heart_rate: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" width="18" height="18"><polyline points="18 10 15 10 13 16 9 4 7 10 4 10"/></svg>',
+    height: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" width="18" height="18"><line x1="4" y1="2" x2="4" y2="18"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="4" y1="6" x2="8" y2="6"/><line x1="4" y1="10" x2="8" y2="10"/><line x1="4" y1="14" x2="8" y2="14"/></svg>'
+  };
   els.metricsList.innerHTML = metrics.map(m => {
-    const typeLabels = { blood_pressure: '血压', blood_sugar: '血糖', weight: '体重', heart_rate: '心率' };
-    const icons = { blood_pressure: '❤️', blood_sugar: '💉', weight: '⚖️', heart_rate: '💓' };
     return `<div class="metric-item">
       <div class="metric-header">
-        <span class="metric-icon">${icons[m.type] || '📊'}</span>
+        <span class="metric-icon">${icons[m.type] || '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" width="18" height="18"><rect x="3" y="3" width="14" height="14" rx="2"/><line x1="3" y1="9" x2="17" y2="9"/><line x1="9" y1="3" x2="9" y2="17"/></svg>'}</span>
         <span class="metric-type">${typeLabels[m.type] || m.type}</span>
         <span class="metric-value">${m.value} <small>${m.unit || ''}</small></span>
         <span class="metric-date">${m.date || ''}</span>
@@ -1436,15 +1442,16 @@ function renderMetricsChart(metrics) {
 
   const types = Object.keys(typeMap);
   if (types.length === 0) {
-    canvas.parentElement.innerHTML = '<div class="chart-placeholder"><p>暂无数据</p></div>';
+    canvas.style.display = 'none';
     return;
   }
+  canvas.style.display = '';
 
   // Pick the most recent type with data
   const activeType = types[0];
   const data = typeMap[activeType].slice().reverse().slice(-20);
 
-  const typeLabels = { blood_pressure: '血压', blood_sugar: '血糖', weight: '体重', heart_rate: '心率' };
+  const typeLabels = { blood_pressure: '血压', blood_sugar: '血糖', weight: '体重', heart_rate: '心率', height: '身高' };
 
   state.metricsChart = new Chart(canvas, {
     type: 'line',

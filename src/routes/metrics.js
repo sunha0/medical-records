@@ -53,7 +53,7 @@ module.exports = function(app) {
         return res.status(400).json({ error: '请填写必填项' });
       }
 
-      const validTypes = ['blood_pressure', 'blood_sugar', 'weight', 'heart_rate'];
+      const validTypes = ['blood_pressure', 'blood_sugar', 'weight', 'heart_rate', 'height'];
       if (!validTypes.includes(type)) {
         return res.status(400).json({ error: '无效的指标类型' });
       }
@@ -102,6 +102,7 @@ function getDefaultUnit(type) {
     case 'blood_sugar': return 'mmol/L';
     case 'weight': return 'kg';
     case 'heart_rate': return '次/分';
+    case 'height': return 'cm';
     default: return '';
   }
 }
