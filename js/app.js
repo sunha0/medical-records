@@ -30,7 +30,13 @@ const state = {
   dateFrom: '',
   dateTo: '',
   costMin: '',
-  costMax: ''
+  costMax: '',
+  // Calendar
+  calendarYear: new Date().getFullYear(),
+  calendarMonth: new Date().getMonth(),
+  calendarSelectedDate: null,
+  // Metrics
+  metricsChart: null
 };
 
 const $ = (sel) => document.querySelector(sel);
@@ -94,7 +100,50 @@ const els = {
   mobileNav: $('#mobileNav'),
   deleteUserModal: $('#deleteUserModal'),
   deleteUserDesc: $('#deleteUserDesc'),
-  usersTableBody: $('#usersTableBody')
+  usersTableBody: $('#usersTableBody'),
+  // Health Metrics
+  metricsTypeFilter: $('#metricsTypeFilter'),
+  addMetricBtn: $('#addMetricBtn'),
+  metricsList: $('#metricsList'),
+  metricsEmpty: $('#metricsEmpty'),
+  metricsTrendChart: $('#metricsTrendChart'),
+  metricModal: $('#metricModal'),
+  metricModalClose: $('#metricModalClose'),
+  metricForm: $('#metricForm'),
+  metricMember: $('#metricMember'),
+  metricType: $('#metricType'),
+  metricValue: $('#metricValue'),
+  metricUnit: $('#metricUnit'),
+  metricDate: $('#metricDate'),
+  metricNotes: $('#metricNotes'),
+  metricCancelBtn: $('#metricCancelBtn'),
+  // Medications
+  addMedicationBtn: $('#addMedicationBtn'),
+  medicationsList: $('#medicationsList'),
+  medicationsEmpty: $('#medicationsEmpty'),
+  medicationModal: $('#medicationModal'),
+  medicationModalClose: $('#medicationModalClose'),
+  medicationModalTitle: $('#medicationModalTitle'),
+  medicationForm: $('#medicationForm'),
+  medicationId: $('#medicationId'),
+  medMember: $('#medMember'),
+  medName: $('#medName'),
+  medDosage: $('#medDosage'),
+  medUnit: $('#medUnit'),
+  medTimes: $('#medTimes'),
+  medTimeSlots: $('#medTimeSlots'),
+  medStartDate: $('#medStartDate'),
+  medEndDate: $('#medEndDate'),
+  medNotes: $('#medNotes'),
+  medicationCancelBtn: $('#medicationCancelBtn'),
+  // Calendar
+  calendarGrid: $('#calendarGrid'),
+  calendarMonthLabel: $('#calendarMonthLabel'),
+  calendarPrevBtn: $('#calendarPrevBtn'),
+  calendarNextBtn: $('#calendarNextBtn'),
+  calendarEvents: $('#calendarEvents'),
+  calendarEventsTitle: $('#calendarEventsTitle'),
+  calendarEventsList: $('#calendarEventsList')
 };
 
 // ===========================
@@ -420,11 +469,48 @@ function initEventListeners() {
       closeSettingsModal();
       closeDeleteConfirm();
       closeExportModal();
+      closeMetricModal();
+      closeMedicationModal();
     }
     if (els.imagePreviewModal.classList.contains('active')) {
       if (e.key === 'ArrowLeft') navigatePreview(-1);
       if (e.key === 'ArrowRight') navigatePreview(1);
     }
+  });
+
+  // --- Metrics Event Listeners ---
+  els.metricsTypeFilter && els.metricsTypeFilter.addEventListener('change', (e) => {
+    loadMetrics(e.target.value);
+  });
+  els.addMetricBtn && els.addMetricBtn.addEventListener('click', openMetricModal);
+  els.metricModalClose && els.metricModalClose.addEventListener('click', closeMetricModal);
+  els.metricCancelBtn && els.metricCancelBtn.addEventListener('click', closeMetricModal);
+  els.metricModal && els.metricModal.querySelector('.modal-backdrop').addEventListener('click', closeMetricModal);
+  els.metricForm && els.metricForm.addEventListener('submit', handleMetricSubmit);
+
+  // Update unit when metric type changes
+  els.metricType && els.metricType.addEventListener('change', (e) => {
+    const units = { blood_pressure: 'mmHg', blood_sugar: 'mmol/L', weight: 'kg', heart_rate: '次/分' };
+    els.metricUnit.value = units[e.target.value] || '';
+  });
+
+  // --- Medication Event Listeners ---
+  els.addMedicationBtn && els.addMedicationBtn.addEventListener('click', () => openMedicationModal());
+  els.medicationModalClose && els.medicationModalClose.addEventListener('click', closeMedicationModal);
+  els.medicationCancelBtn && els.medicationCancelBtn.addEventListener('click', closeMedicationModal);
+  els.medicationModal && els.medicationModal.querySelector('.modal-backdrop').addEventListener('click', closeMedicationModal);
+  els.medicationForm && els.medicationForm.addEventListener('submit', handleMedicationSubmit);
+
+  // --- Calendar Event Listeners ---
+  els.calendarPrevBtn && els.calendarPrevBtn.addEventListener('click', () => {
+    state.calendarMonth -= 1;
+    if (state.calendarMonth < 0) { state.calendarMonth = 11; state.calendarYear -= 1; }
+    renderCalendar();
+  });
+  els.calendarNextBtn && els.calendarNextBtn.addEventListener('click', () => {
+    state.calendarMonth += 1;
+    if (state.calendarMonth > 11) { state.calendarMonth = 0; state.calendarYear += 1; }
+    renderCalendar();
   });
 }
 
@@ -1053,28 +1139,24 @@ async function generatePDF(data) {
 
     // Convert canvas to PDF
     const imgData = canvas.toDataURL('image/png');
-    const imgWidth = 177; // A4 width - 2*margin
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
     const pdf = new jsPDF('p', 'mm', 'a4');
-    let yPos = 20;
-    const pageHeight = 297 - 40; // A4 height - 2*margin
+    const pageWidth = 210;
+    const pageHeight = 297;
+    const margin = 20;
+    const contentWidth = pageWidth - 2 * margin;
+    const imgWidth = contentWidth;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    const pageContentHeight = pageHeight - 2 * margin;
 
-    // Handle multi-page if content is tall
-    let remainingHeight = imgHeight;
-    let sourceY = 0;
+    pdf.addImage(imgData, 'PNG', margin, margin, imgWidth, imgHeight);
+    let heightLeft = imgHeight - pageContentHeight;
+    let position = margin;
 
-    while (remainingHeight > 0) {
-      const sliceHeight = Math.min(pageHeight, remainingHeight);
-      const sourceSliceHeight = (sliceHeight / imgHeight) * canvas.height;
-
-      pdf.addImage(imgData, 'PNG', 20, yPos, imgWidth, imgHeight);
-
-      remainingHeight -= sliceHeight;
-      if (remainingHeight > 0) {
-        pdf.addPage();
-        yPos = 20 - (sliceHeight * (sourceY + sliceHeight) / imgHeight);
-      }
+    while (heightLeft > 0) {
+      position = position - pageContentHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
+      heightLeft -= pageContentHeight;
     }
 
     pdf.save(`健康报告_${new Date().toISOString().slice(0, 10)}.pdf`);
@@ -1291,9 +1373,466 @@ function renderHealthTimeline(records) {
     `).join('')}
   `;
 }
+// ===========================
+// Health Metrics
+// ===========================
+async function loadMetrics(type) {
+  try {
+    let url = '/metrics?limit=500';
+    if (type && type !== 'all') url += '&type=' + type;
+    const data = await apiFetch(url);
+    const metrics = data.metrics || [];
+
+    renderMetrics(metrics);
+    renderMetricsChart(metrics);
+  } catch (err) {
+    console.error('加载健康指标失败:', err);
+  }
+}
+
+function renderMetrics(metrics) {
+  if (!els.metricsList) return;
+  if (metrics.length === 0) {
+    els.metricsList.innerHTML = '';
+    els.metricsEmpty.style.display = 'block';
+    return;
+  }
+  els.metricsEmpty.style.display = 'none';
+
+  els.metricsList.innerHTML = metrics.map(m => {
+    const typeLabels = { blood_pressure: '血压', blood_sugar: '血糖', weight: '体重', heart_rate: '心率' };
+    const icons = { blood_pressure: '❤️', blood_sugar: '💉', weight: '⚖️', heart_rate: '💓' };
+    return `<div class="metric-item">
+      <div class="metric-header">
+        <span class="metric-icon">${icons[m.type] || '📊'}</span>
+        <span class="metric-type">${typeLabels[m.type] || m.type}</span>
+        <span class="metric-value">${m.value} <small>${m.unit || ''}</small></span>
+        <span class="metric-date">${m.date || ''}</span>
+        <button class="btn btn-danger btn-sm" onclick="deleteMetric('${m.id}')" title="删除">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        </button>
+      </div>
+      ${m.notes ? `<div class="metric-notes">${escapeHtml(m.notes)}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function renderMetricsChart(metrics) {
+  const canvas = els.metricsTrendChart;
+  if (!canvas) return;
+
+  // Group by type and get latest 20 entries for chart
+  const typeMap = {};
+  metrics.forEach(m => {
+    if (!typeMap[m.type]) typeMap[m.type] = [];
+    typeMap[m.type].push(m);
+  });
+
+  // Destroy existing chart
+  if (state.metricsChart) {
+    state.metricsChart.destroy();
+    state.metricsChart = null;
+  }
+
+  const types = Object.keys(typeMap);
+  if (types.length === 0) {
+    canvas.parentElement.innerHTML = '<div class="chart-placeholder"><p>暂无数据</p></div>';
+    return;
+  }
+
+  // Pick the most recent type with data
+  const activeType = types[0];
+  const data = typeMap[activeType].slice().reverse().slice(-20);
+
+  const typeLabels = { blood_pressure: '血压', blood_sugar: '血糖', weight: '体重', heart_rate: '心率' };
+
+  state.metricsChart = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: data.map(d => d.date),
+      datasets: [{
+        label: typeLabels[activeType] || activeType,
+        data: data.map(d => d.value),
+        borderColor: '#3B82F6',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 4,
+        pointBackgroundColor: '#3B82F6'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: { legend: { display: true } },
+      scales: {
+        y: { beginAtZero: false },
+        x: { ticks: { maxRotation: 45, font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+function openMetricModal() {
+  // Populate member select
+  populateMemberSelect(els.metricMember);
+
+  // Default date
+  els.metricDate.value = new Date().toISOString().slice(0, 10);
+
+  // Trigger unit update
+  const event = new Event('change');
+  els.metricType.dispatchEvent(event);
+
+  els.metricModal.classList.add('active');
+}
+
+function closeMetricModal() {
+  els.metricModal.classList.remove('active');
+  els.metricForm.reset();
+}
+
+async function handleMetricSubmit(e) {
+  e.preventDefault();
+  const btn = e.target.querySelector('button[type="submit"]');
+  setButtonLoading(btn, true);
+
+  try {
+    await apiFetch('/metrics', {
+      method: 'POST',
+      body: JSON.stringify({
+        type: els.metricType.value,
+        value: parseFloat(els.metricValue.value),
+        unit: els.metricUnit.value,
+        date: els.metricDate.value,
+        notes: els.metricNotes.value,
+        memberId: els.metricMember.value
+      })
+    });
+    closeMetricModal();
+    showToast('指标录入成功', 'success');
+    loadMetrics(els.metricsTypeFilter ? els.metricsTypeFilter.value : 'all');
+  } catch (err) {
+    showToast(err.message || '录入失败', 'error');
+  } finally {
+    setButtonLoading(btn, false);
+  }
+}
+
+async function deleteMetric(id) {
+  if (!confirm('确定删除这条指标记录吗？')) return;
+  try {
+    await apiFetch('/metrics/' + id, { method: 'DELETE' });
+    showToast('已删除', 'success');
+    loadMetrics(els.metricsTypeFilter ? els.metricsTypeFilter.value : 'all');
+  } catch (err) {
+    showToast(err.message || '删除失败', 'error');
+  }
+}
 
 // ===========================
-// Rendering
+// Medications
+// ===========================
+async function loadMedications() {
+  try {
+    const data = await apiFetch('/medications');
+    renderMedications(data.medications || []);
+  } catch (err) {
+    console.error('加载用药记录失败:', err);
+  }
+}
+
+function renderMedications(medications) {
+  if (!els.medicationsList) return;
+  if (medications.length === 0) {
+    els.medicationsList.innerHTML = '';
+    els.medicationsEmpty.style.display = 'block';
+    return;
+  }
+  els.medicationsEmpty.style.display = 'none';
+
+  els.medicationsList.innerHTML = medications.map(m => `
+    <div class="medication-card ${m.active ? '' : 'inactive'}">
+      <div class="medication-header">
+        <div class="medication-name">
+          <span class="medication-status ${m.active ? 'active' : ''}"></span>
+          ${escapeHtml(m.name)}
+        </div>
+        <div class="medication-actions">
+          <label class="switch">
+            <input type="checkbox" ${m.active ? 'checked' : ''} onchange="toggleMedication('${m.id}', this.checked)">
+            <span class="switch-slider"></span>
+          </label>
+          <button class="btn btn-ghost btn-sm" onclick="editMedication('${m.id}')" title="编辑">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="btn btn-danger btn-sm" onclick="deleteMedication('${m.id}')" title="删除">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="medication-details">
+        <span class="medication-dosage">${escapeHtml(m.dosage)} ${escapeHtml(m.unit)} | 每日${m.timesPerDay}次</span>
+        ${m.timeSlots && m.timeSlots.length > 0 ? `<span class="medication-times">${m.timeSlots.join(', ')}</span>` : ''}
+        <span class="medication-period">${m.startDate || ''}${m.endDate ? ' ~ ' + m.endDate : ''}</span>
+      </div>
+      ${m.notes ? `<div class="medication-notes">${escapeHtml(m.notes)}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+function openMedicationModal(editData) {
+  populateMemberSelect(els.medMember);
+
+  if (editData) {
+    els.medicationModalTitle.textContent = '编辑药品';
+    els.medicationId.value = editData.id;
+    els.medName.value = editData.name;
+    els.medDosage.value = editData.dosage;
+    els.medUnit.value = editData.unit;
+    els.medTimes.value = editData.timesPerDay || 1;
+    els.medTimeSlots.value = (editData.timeSlots || []).join(',');
+    els.medStartDate.value = editData.startDate || '';
+    els.medEndDate.value = editData.endDate || '';
+    els.medNotes.value = editData.notes || '';
+    if (editData.memberId) els.medMember.value = editData.memberId;
+  } else {
+    els.medicationModalTitle.textContent = '添加药品';
+    els.medicationId.value = '';
+    els.medicationForm.reset();
+    els.medStartDate.value = new Date().toISOString().slice(0, 10);
+  }
+
+  els.medicationModal.classList.add('active');
+}
+
+function closeMedicationModal() {
+  els.medicationModal.classList.remove('active');
+  els.medicationForm.reset();
+}
+
+async function handleMedicationSubmit(e) {
+  e.preventDefault();
+  const btn = e.target.querySelector('button[type="submit"]');
+  setButtonLoading(btn, true);
+
+  const editId = els.medicationId.value;
+  const timeSlotsStr = els.medTimeSlots.value.trim();
+  const timeSlots = timeSlotsStr ? timeSlotsStr.split(',').map(t => t.trim()).filter(Boolean) : [];
+
+  try {
+    const body = {
+      name: els.medName.value,
+      dosage: els.medDosage.value,
+      unit: els.medUnit.value,
+      timesPerDay: parseInt(els.medTimes.value) || 1,
+      timeSlots,
+      startDate: els.medStartDate.value,
+      endDate: els.medEndDate.value,
+      notes: els.medNotes.value,
+      memberId: els.medMember.value
+    };
+
+    if (editId) {
+      await apiFetch('/medications/' + editId, {
+        method: 'PUT',
+        body: JSON.stringify(body)
+      });
+      showToast('药品已更新', 'success');
+    } else {
+      await apiFetch('/medications', {
+        method: 'POST',
+        body: JSON.stringify(body)
+      });
+      showToast('药品已添加', 'success');
+    }
+    closeMedicationModal();
+    loadMedications();
+  } catch (err) {
+    showToast(err.message || '保存失败', 'error');
+  } finally {
+    setButtonLoading(btn, false);
+  }
+}
+
+async function toggleMedication(id, active) {
+  try {
+    await apiFetch('/medications/' + id + '/toggle', {
+      method: 'PATCH',
+      body: JSON.stringify({ active })
+    });
+    loadMedications();
+  } catch (err) {
+    showToast(err.message || '操作失败', 'error');
+  }
+}
+
+async function deleteMedication(id) {
+  if (!confirm('确定要删除这条用药记录吗？')) return;
+  try {
+    await apiFetch('/medications/' + id, { method: 'DELETE' });
+    showToast('已删除', 'success');
+    loadMedications();
+  } catch (err) {
+    showToast(err.message || '删除失败', 'error');
+  }
+}
+
+function editMedication(id) {
+  // Find from rendered cards - fetch and populate
+  apiFetch('/medications').then(data => {
+    const med = (data.medications || []).find(m => m.id === id);
+    if (med) openMedicationModal(med);
+  }).catch(err => showToast(err.message, 'error'));
+}
+
+// ===========================
+// Calendar View
+// ===========================
+function renderCalendar() {
+  if (!els.calendarGrid) return;
+
+  const year = state.calendarYear;
+  const month = state.calendarMonth;
+
+  els.calendarMonthLabel.textContent = `${year}年${month + 1}月`;
+
+  // Get records that have dates
+  const allRecords = state.records || [];
+  const recordDates = new Set();
+  const dateRecordMap = {};
+
+  allRecords.forEach(r => {
+    if (r.date) {
+      const d = r.date.slice(0, 10);
+      recordDates.add(d);
+      if (!dateRecordMap[d]) dateRecordMap[d] = [];
+      dateRecordMap[d].push(r);
+    }
+  });
+
+  // Get reminders with dates
+  const reminders = state.reminders || [];
+  const reminderDates = new Set();
+  reminders.forEach(r => {
+    if (r.date) {
+      reminderDates.add(r.date);
+    }
+  });
+
+  // Build calendar grid
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+  let html = '<div class="calendar-weekdays">' +
+    weekdays.map(d => `<span>${d}</span>`).join('') + '</div>';
+
+  // Calendar days
+  let day = 1;
+  for (let row = 0; row < 6; row++) {
+    if (day > daysInMonth) break;
+    html += '<div class="calendar-week">';
+    for (let col = 0; col < 7; col++) {
+      if (row === 0 && col < firstDay) {
+        html += '<span class="calendar-day empty"></span>';
+      } else if (day > daysInMonth) {
+        html += '<span class="calendar-day empty"></span>';
+      } else {
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const hasRecord = recordDates.has(dateStr);
+        const hasReminder = reminderDates.has(dateStr);
+        const isToday = dateStr === new Date().toISOString().slice(0, 10);
+        const isSelected = dateStr === state.calendarSelectedDate;
+
+        let cls = 'calendar-day';
+        if (isToday) cls += ' today';
+        if (isSelected) cls += ' selected';
+        if (hasRecord || hasReminder) cls += ' has-event';
+
+        let dots = '';
+        if (hasRecord) dots += '<span class="dot dot-blue"></span>';
+        if (hasReminder) dots += '<span class="dot dot-orange"></span>';
+
+        html += `<span class="${cls}" data-date="${dateStr}">${day}${dots}</span>`;
+        day++;
+      }
+    }
+    html += '</div>';
+  }
+
+  els.calendarGrid.innerHTML = html;
+
+  // Click handler for day selection
+  els.calendarGrid.querySelectorAll('.calendar-day:not(.empty)').forEach(el => {
+    el.addEventListener('click', () => {
+      const date = el.dataset.date;
+      state.calendarSelectedDate = date;
+      renderCalendar();
+      showCalendarEvents(date, dateRecordMap[date] || [], reminders.filter(r => r.date === date));
+    });
+  });
+
+  // Show events for selected date or first day with events
+  if (state.calendarSelectedDate) {
+    const d = state.calendarSelectedDate;
+    showCalendarEvents(d, dateRecordMap[d] || [], reminders.filter(r => r.date === d));
+  } else {
+    // Find first date with events
+    const sortedDates = Object.keys(dateRecordMap).sort();
+    if (sortedDates.length > 0) {
+      const first = sortedDates[0];
+      showCalendarEvents(first, dateRecordMap[first] || [], reminders.filter(r => r.date === first));
+    } else {
+      els.calendarEvents.style.display = 'none';
+    }
+  }
+}
+
+function showCalendarEvents(date, records, reminders) {
+  if (!els.calendarEvents) return;
+  els.calendarEvents.style.display = 'block';
+  els.calendarEventsTitle.textContent = `${date} 的就诊记录`;
+
+  let html = '';
+
+  if (records.length > 0) {
+    records.forEach(r => {
+      html += `<div class="calendar-event-item">
+        <div class="calendar-event-header">
+          <span class="calendar-event-title">${escapeHtml(r.patient || '未知')} - ${escapeHtml(r.diagnosis || '')}</span>
+          <span class="calendar-event-hospital">${escapeHtml(r.hospital || '')}</span>
+        </div>
+        <div class="calendar-event-cost">${r.cost ? '¥' + r.cost.toFixed(2) : ''}</div>
+      </div>`;
+    });
+  }
+
+  if (reminders.length > 0) {
+    html += '<div class="calendar-reminders-section"><h4>提醒</h4>';
+    reminders.forEach(r => {
+      html += `<div class="calendar-event-item reminder">
+        <span>${escapeHtml(r.title || '')}</span>
+        <span class="calendar-event-notes">${escapeHtml(r.notes || '')}</span>
+      </div>`;
+    });
+    html += '</div>';
+  }
+
+  if (!html) {
+    html = '<p class="calendar-no-events">当天无记录</p>';
+  }
+
+  els.calendarEventsList.innerHTML = html;
+}
+
+function populateMemberSelect(selectEl) {
+  if (!selectEl) return;
+  selectEl.innerHTML = state.familyMembers.map(m =>
+    `<option value="${m.memberId}">${escapeHtml(m.name)}</option>`
+  ).join('');
+}
+
 // ===========================
 function switchView(view) {
   state.currentView = view;
@@ -1311,6 +1850,13 @@ function switchView(view) {
     loadStats();
   } else if (view === 'users') {
     loadUsers();
+  } else if (view === 'metrics') {
+    loadMetrics();
+  } else if (view === 'medications') {
+    loadMedications();
+  } else if (view === 'calendar') {
+    loadReminders();
+    renderCalendar();
   } else {
     // records and photos views need render()
     render();

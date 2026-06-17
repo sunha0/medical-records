@@ -7,6 +7,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#3B82F6">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="健康记">
   <link rel="stylesheet" href="css/styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -180,6 +185,30 @@
               <path d="m19 9-5 5-4-4-3 3"/>
             </svg>
             <span>健康趋势</span>
+          </a>
+          <a href="#" class="nav-item" data-view="metrics">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 20V10M18 20V4M6 20v-4"/>
+            </svg>
+            <span>健康指标</span>
+          </a>
+          <a href="#" class="nav-item" data-view="medications">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="4" y="2" width="16" height="20" rx="2"/>
+              <line x1="8" y1="6" x2="16" y2="6"/>
+              <line x1="8" y1="10" x2="16" y2="10"/>
+              <line x1="8" y1="14" x2="12" y2="14"/>
+            </svg>
+            <span>用药管理</span>
+          </a>
+          <a href="#" class="nav-item" data-view="calendar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+              <line x1="16" y1="2" x2="16" y2="6"/>
+              <line x1="8" y1="2" x2="8" y2="6"/>
+              <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+            <span>日历视图</span>
           </a>
           <a href="#" class="nav-item admin-only" data-view="users" style="display: none;">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -377,6 +406,74 @@
             </table>
           </div>
         </div>
+
+        <!-- Health Metrics View -->
+        <div class="view" id="metricsView">
+          <div class="view-header">
+            <h2 class="view-title">健康指标</h2>
+            <div class="view-filters">
+              <select class="filter-select" id="metricsTypeFilter">
+                <option value="all">全部类型</option>
+                <option value="blood_pressure">血压</option>
+                <option value="blood_sugar">血糖</option>
+                <option value="weight">体重</option>
+                <option value="heart_rate">心率</option>
+              </select>
+              <button class="btn btn-primary" id="addMetricBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span style="margin-left:4px;">录入指标</span>
+              </button>
+            </div>
+          </div>
+          <div class="metrics-chart-section">
+            <div class="chart-container">
+              <canvas id="metricsTrendChart"></canvas>
+            </div>
+          </div>
+          <div class="metrics-list" id="metricsList"></div>
+          <div class="metrics-empty" id="metricsEmpty">
+            <p>暂无健康指标数据，点击上方按钮录入</p>
+          </div>
+        </div>
+
+        <!-- Medications View -->
+        <div class="view" id="medicationsView">
+          <div class="view-header">
+            <h2 class="view-title">用药管理</h2>
+            <div class="view-filters">
+              <button class="btn btn-primary" id="addMedicationBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span style="margin-left:4px;">添加药品</span>
+              </button>
+            </div>
+          </div>
+          <div class="medications-list" id="medicationsList"></div>
+          <div class="medications-empty" id="medicationsEmpty">
+            <p>暂无用药记录，点击上方按钮添加</p>
+          </div>
+        </div>
+
+        <!-- Calendar View -->
+        <div class="view" id="calendarView">
+          <div class="view-header">
+            <h2 class="view-title">日历视图</h2>
+            <div class="view-filters">
+              <button class="btn btn-ghost" id="calendarPrevBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+              <span class="calendar-month-label" id="calendarMonthLabel"></span>
+              <button class="btn btn-ghost" id="calendarNextBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="calendar-grid" id="calendarGrid"></div>
+          <div class="calendar-events" id="calendarEvents" style="display:none;">
+            <h3 class="calendar-events-title" id="calendarEventsTitle"></h3>
+            <div id="calendarEventsList"></div>
+          </div>
+        </div>
+
       </section>
     </main>
   </div>
@@ -728,6 +825,118 @@
     </div>
   </div>
 
+  <!-- Add Metric Modal -->
+  <div class="modal" id="metricModal">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+      <button class="modal-close" id="metricModalClose">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+      <h2 class="modal-title">录入健康指标</h2>
+      <form class="record-form" id="metricForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="metricMember">成员 *</label>
+            <select id="metricMember" required></select>
+          </div>
+          <div class="form-group">
+            <label for="metricType">指标类型 *</label>
+            <select id="metricType" required>
+              <option value="blood_pressure">血压</option>
+              <option value="blood_sugar">血糖</option>
+              <option value="weight">体重</option>
+              <option value="heart_rate">心率</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="metricValue">数值 *</label>
+            <input type="number" id="metricValue" step="0.1" required placeholder="如 120">
+          </div>
+          <div class="form-group">
+            <label for="metricUnit">单位</label>
+            <input type="text" id="metricUnit" readonly>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="metricDate">日期</label>
+          <input type="date" id="metricDate">
+        </div>
+        <div class="form-group">
+          <label for="metricNotes">备注</label>
+          <textarea id="metricNotes" rows="2" placeholder="可选备注信息"></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" id="metricCancelBtn">取消</button>
+          <button type="submit" class="btn btn-primary">保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add Medication Modal -->
+  <div class="modal" id="medicationModal">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+      <button class="modal-close" id="medicationModalClose">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+      <h2 class="modal-title" id="medicationModalTitle">添加药品</h2>
+      <form class="record-form" id="medicationForm">
+        <input type="hidden" id="medicationId">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="medMember">成员 *</label>
+            <select id="medMember" required></select>
+          </div>
+          <div class="form-group">
+            <label for="medName">药品名称 *</label>
+            <input type="text" id="medName" required placeholder="如 阿莫西林">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="medDosage">单次用量 *</label>
+            <input type="text" id="medDosage" required placeholder="如 1">
+          </div>
+          <div class="form-group">
+            <label for="medUnit">单位 *</label>
+            <input type="text" id="medUnit" required placeholder="如 片、ml、粒">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="medTimes">每日次数</label>
+            <input type="number" id="medTimes" min="1" max="10" value="1" placeholder="如 3">
+          </div>
+          <div class="form-group">
+            <label for="medTimeSlots">服药时间</label>
+            <input type="text" id="medTimeSlots" placeholder="如 08:00,12:00,20:00">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="medStartDate">开始日期</label>
+            <input type="date" id="medStartDate">
+          </div>
+          <div class="form-group">
+            <label for="medEndDate">结束日期</label>
+            <input type="date" id="medEndDate">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="medNotes">备注</label>
+          <textarea id="medNotes" rows="2" placeholder="可选备注信息"></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" id="medicationCancelBtn">取消</button>
+          <button type="submit" class="btn btn-primary">保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 
   <!-- Mobile Bottom Navigation -->
@@ -754,6 +963,30 @@
       </svg>
       <span>健康趋势</span>
     </a>
+    <a href="#" class="mobile-nav-item" data-view="metrics">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 20V10M18 20V4M6 20v-4"/>
+      </svg>
+      <span>指标</span>
+    </a>
+    <a href="#" class="mobile-nav-item" data-view="medications">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="4" y="2" width="16" height="20" rx="2"/>
+        <line x1="8" y1="6" x2="16" y2="6"/>
+        <line x1="8" y1="10" x2="16" y2="10"/>
+        <line x1="8" y1="14" x2="12" y2="14"/>
+      </svg>
+      <span>用药</span>
+    </a>
+    <a href="#" class="mobile-nav-item" data-view="calendar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+        <line x1="16" y1="2" x2="16" y2="6"/>
+        <line x1="8" y1="2" x2="8" y2="6"/>
+        <line x1="3" y1="10" x2="21" y2="10"/>
+      </svg>
+      <span>日历</span>
+    </a>
     <button class="mobile-nav-item" id="mobileLogoutBtn">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -765,5 +998,12 @@
   </nav>
 
   <script src="js/app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js');
+      });
+    }
+  </script>
 </body>
 </html>

@@ -113,6 +113,38 @@ async function deleteRecordImages(record) {
   }
 }
 
+// --- Health Metrics ---
+async function getUserMetrics(userId) {
+  const dir = await getUserDir(userId);
+  const file = path.join(dir, 'metrics.json');
+  if (!fsSync.existsSync(file)) {
+    await fs.writeFile(file, '[]', 'utf8');
+  }
+  const content = await fs.readFile(file, 'utf8');
+  return JSON.parse(content);
+}
+
+async function saveUserMetrics(userId, metrics) {
+  const dir = await getUserDir(userId);
+  await fs.writeFile(path.join(dir, 'metrics.json'), JSON.stringify(metrics, null, 2), 'utf8');
+}
+
+// --- Medications ---
+async function getUserMedications(userId) {
+  const dir = await getUserDir(userId);
+  const file = path.join(dir, 'medications.json');
+  if (!fsSync.existsSync(file)) {
+    await fs.writeFile(file, '[]', 'utf8');
+  }
+  const content = await fs.readFile(file, 'utf8');
+  return JSON.parse(content);
+}
+
+async function saveUserMedications(userId, medications) {
+  const dir = await getUserDir(userId);
+  await fs.writeFile(path.join(dir, 'medications.json'), JSON.stringify(medications, null, 2), 'utf8');
+}
+
 module.exports = {
   DATA_DIR,
   USERS_FILE,
@@ -125,5 +157,9 @@ module.exports = {
   getUserRecords,
   saveUserRecords,
   migrateBase64Images,
-  deleteRecordImages
+  deleteRecordImages,
+  getUserMetrics,
+  saveUserMetrics,
+  getUserMedications,
+  saveUserMedications
 };

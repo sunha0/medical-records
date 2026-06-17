@@ -2472,3 +2472,389 @@ body.batch-mode .card-checkbox input {
   letter-spacing: 0.5px;
   margin-bottom: 12px;
 }
+
+/* ===========================
+   Health Metrics
+   =========================== */
+.metrics-chart-section {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.metrics-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.metric-item {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+
+.metric-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.metric-icon {
+  font-size: 1.25rem;
+  width: 32px;
+  text-align: center;
+}
+
+.metric-type {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  min-width: 40px;
+}
+
+.metric-value {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text);
+  flex: 1;
+}
+
+.metric-value small {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.metric-date {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.metric-notes {
+  margin-top: 8px;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  padding-left: 44px;
+}
+
+.btn-danger.btn-sm {
+  padding: 4px 8px;
+  min-width: auto;
+  height: auto;
+}
+
+.metrics-empty {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-muted);
+  display: none;
+}
+
+/* ===========================
+   Medications
+   =========================== */
+.medications-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.medication-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.medication-card.inactive {
+  opacity: 0.6;
+}
+
+.medication-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.medication-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.medication-status {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.medication-status.active {
+  background: #10B981;
+}
+
+.medication-status:not(.active) {
+  background: #CBD5E1;
+}
+
+.medication-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.medication-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.medication-notes {
+  margin-top: 8px;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.medications-empty {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-muted);
+  display: none;
+}
+
+/* Toggle Switch */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 22px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #CBD5E1;
+  transition: .3s;
+  border-radius: 22px;
+}
+
+.switch-slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .3s;
+  border-radius: 50%;
+}
+
+.switch input:checked + .switch-slider {
+  background-color: #3B82F6;
+}
+
+.switch input:checked + .switch-slider:before {
+  transform: translateX(18px);
+}
+
+/* ===========================
+   Calendar View
+   =========================== */
+.calendar-month-label {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text);
+  min-width: 120px;
+  text-align: center;
+}
+
+.calendar-grid {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.calendar-weekdays span {
+  padding: 10px 4px;
+  text-align: center;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.calendar-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  border-bottom: 1px solid var(--border);
+}
+
+.calendar-week:last-child {
+  border-bottom: none;
+}
+
+.calendar-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 8px 4px;
+  min-height: 80px;
+  font-size: 0.875rem;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.2s;
+  gap: 2px;
+  border-right: 1px solid var(--border);
+}
+
+.calendar-day:nth-child(7n) {
+  border-right: none;
+}
+
+.calendar-day:hover {
+  background: var(--bg);
+}
+
+.calendar-day.empty {
+  cursor: default;
+}
+
+.calendar-day.empty:hover {
+  background: transparent;
+}
+
+.calendar-day.today {
+  font-weight: 700;
+  color: #3B82F6;
+}
+
+.calendar-day.selected {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: #3B82F6;
+}
+
+.calendar-day.has-event {
+  font-weight: 600;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.dot-blue {
+  background: #3B82F6;
+}
+
+.dot-orange {
+  background: #F59E0B;
+}
+
+.calendar-events {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.calendar-events-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 12px;
+}
+
+.calendar-event-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.calendar-event-item:last-child {
+  border-bottom: none;
+}
+
+.calendar-event-item.reminder {
+  background: rgba(245, 158, 11, 0.05);
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+
+.calendar-event-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.calendar-event-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.calendar-event-hospital {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.calendar-event-cost {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.calendar-event-notes {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.calendar-no-events {
+  text-align: center;
+  padding: 20px;
+  color: var(--text-muted);
+}
+
+.calendar-reminders-section {
+  margin-top: 12px;
+}
+
+.calendar-reminders-section h4 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #F59E0B;
+  margin-bottom: 8px;
+}
