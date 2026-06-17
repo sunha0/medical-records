@@ -143,7 +143,21 @@ const els = {
   calendarNextBtn: $('#calendarNextBtn'),
   calendarEvents: $('#calendarEvents'),
   calendarEventsTitle: $('#calendarEventsTitle'),
-  calendarEventsList: $('#calendarEventsList')
+  calendarEventsList: $('#calendarEventsList'),
+  // Search Suggestions
+  searchSuggestions: $('#searchSuggestions'),
+  // Overview Cards
+  overviewCards: $('#overviewCards'),
+  overviewMonthCount: $('#overviewMonthCount'),
+  overviewMonthChange: $('#overviewMonthChange'),
+  overviewReminders: $('#overviewReminders'),
+  overviewReminderCount: $('#overviewReminderCount'),
+  overviewReminderDesc: $('#overviewReminderDesc'),
+  overviewLatestList: $('#overviewLatestList'),
+  // Reminder List Modal
+  reminderListModal: $('#reminderListModal'),
+  reminderListContainer: $('#reminderListContainer'),
+  reminderListSubtitle: $('#reminderListSubtitle')
 };
 
 // ===========================
@@ -324,7 +338,54 @@ function initEventListeners() {
     state.searchQuery = e.target.value;
     state.pagination.page = 1;
     loadData();
-  }, 400));
+    buildSearchSuggestions(e.target.value);
+  }, 200));
+
+  // Search suggestions: keyboard nav
+  els.searchInput.addEventListener('keydown', (e) => {
+    const container = els.searchSuggestions;
+    if (!container || container.style.display === 'none') return;
+    const items = container.querySelectorAll('.suggestion-item');
+    const active = container.querySelector('.suggestion-item.active');
+    let idx = Array.from(items).indexOf(active);
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      idx = Math.min(idx + 1, items.length - 1);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      idx = Math.max(idx - 1, 0);
+    } else if (e.key === 'Enter' && active) {
+      e.preventDefault();
+      selectSuggestion(active.dataset.value);
+      return;
+    } else {
+      return;
+    }
+
+    items.forEach(el => el.classList.remove('active'));
+    if (items[idx]) {
+      items[idx].classList.add('active');
+      items[idx].scrollIntoView({ block: 'nearest' });
+    }
+  });
+
+  // Focus: show suggestions if there's a query
+  els.searchInput.addEventListener('focus', () => {
+    if (els.searchInput.value.trim().length > 0) {
+      buildSearchSuggestions(els.searchInput.value);
+    }
+  });
+
+  // Blur: hide suggestions (delay to allow click)
+  els.searchInput.addEventListener('blur', () => {
+    setTimeout(() => {
+      if (els.searchSuggestions) els.searchSuggestions.style.display = 'none';
+    }, 200);
+  });
+
+  // Overview cards: click reminder card to open reminder list modal
+  els.overviewReminders && els.overviewReminders.addEventListener('click', openReminderListModal);
 
   els.timeFilter.addEventListener('change', (e) => {
     state.timeFilter = e.target.value;
@@ -501,6 +562,10 @@ function initEventListeners() {
   els.medicationModal && els.medicationModal.querySelector('.modal-backdrop').addEventListener('click', closeMedicationModal);
   els.medicationForm && els.medicationForm.addEventListener('submit', handleMedicationSubmit);
 
+  // --- Reminder List Modal ---
+  els.reminderListModal && els.reminderListModal.querySelector('.modal-close').addEventListener('click', closeReminderListModal);
+  els.reminderListModal && els.reminderListModal.querySelector('.modal-backdrop').addEventListener('click', closeReminderListModal);
+
   // --- Calendar Event Listeners ---
   els.calendarPrevBtn && els.calendarPrevBtn.addEventListener('click', () => {
     state.calendarMonth -= 1;
@@ -650,6 +715,7 @@ async function loadDueReminders() {
     if (data) {
       state.dueReminderCount = data.count;
       renderReminderBadge();
+      renderOverviewCards();
       if (data.count > 0) {
         showToast(`您有 ${data.count} 条复诊提醒待处理`, 'warning');
       }
@@ -1167,6 +1233,84 @@ async function generatePDF(data) {
   } finally {
     document.body.removeChild(container);
   }
+}
+
+// ===========================
+// Search Suggestions
+// ===========================
+function buildSearchSuggestions(query) {
+  const container = els.searchSuggestions;
+  if (!container) return;
+
+  const trimmed = query.trim().toLowerCase();
+  if (!trimmed || !state.records || state.records.length === 0) {
+    container.style.display = 'none';
+    return;
+  }
+
+  // Extract unique hospitals and departments
+  const hospitals = new Set();
+  const departments = new Set();
+  state.records.forEach(r => {
+    if (r.hospital && r.hospital.toLowerCase().includes(trimmed)) {
+      hospitals.add(r.hospital);
+    }
+    if (r.department && r.department.toLowerCase().includes(trimmed)) {
+      departments.add(r.department);
+    }
+  });
+
+  const hospitalArr = Array.from(hospitals).slice(0, 5);
+  const departmentArr = Array.from(departments).slice(0, 5);
+
+  if (hospitalArr.length === 0 && departmentArr.length === 0) {
+    container.style.display = 'none';
+    return;
+  }
+
+  let html = '';
+  if (hospitalArr.length > 0) {
+    html += '<div class="suggestion-header">医院</div>';
+    html += hospitalArr.map(h =>
+      `<div class="suggestion-item" data-value="${escapeAttr(h)}">
+        <svg class="suggestion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span>${escapeHtml(h)}</span>
+        <span class="suggestion-type">医院</span>
+      </div>`
+    ).join('');
+  }
+  if (departmentArr.length > 0) {
+    html += '<div class="suggestion-header">科室</div>';
+    html += departmentArr.map(d =>
+      `<div class="suggestion-item" data-value="${escapeAttr(d)}">
+        <svg class="suggestion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        <span>${escapeHtml(d)}</span>
+        <span class="suggestion-type">科室</span>
+      </div>`
+    ).join('');
+  }
+
+  container.innerHTML = html;
+  container.style.display = '';
+
+  // Click handlers
+  container.querySelectorAll('.suggestion-item').forEach(el => {
+    el.addEventListener('click', () => {
+      selectSuggestion(el.dataset.value);
+    });
+  });
+}
+
+function selectSuggestion(value) {
+  els.searchInput.value = value;
+  els.searchSuggestions.style.display = 'none';
+  state.searchQuery = value;
+  state.pagination.page = 1;
+  loadData();
+}
+
+function escapeAttr(str) {
+  return String(str).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 async function handleLoadMore() {
@@ -1870,12 +2014,194 @@ function switchView(view) {
   }
 }
 
+function renderOverviewCards() {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+
+  // Current month records
+  const thisMonthRecords = state.records.filter(r => {
+    const d = new Date(r.date);
+    return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+  });
+
+  // Previous month records for comparison
+  const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+  const prevYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+  const prevMonthRecords = state.records.filter(r => {
+    const d = new Date(r.date);
+    return d.getFullYear() === prevYear && d.getMonth() === prevMonth;
+  });
+
+  // Update month visit count
+  const count = thisMonthRecords.length;
+  if (els.overviewMonthCount) {
+    els.overviewMonthCount.textContent = count;
+  }
+
+  // Month-over-month change
+  if (els.overviewMonthChange) {
+    const prevCount = prevMonthRecords.length;
+    if (count > 0 || prevCount > 0) {
+      if (count > prevCount) {
+        const diff = count - prevCount;
+        els.overviewMonthChange.innerHTML = `<span style="color:#16a34a">↑ ${diff}</span> vs 上月`;
+      } else if (count < prevCount) {
+        const diff = prevCount - count;
+        els.overviewMonthChange.innerHTML = `<span style="color:#dc2626">↓ ${diff}</span> vs 上月`;
+      } else {
+        els.overviewMonthChange.innerHTML = `<span style="color:#64748b">→ 持平</span> vs 上月`;
+      }
+    } else {
+      els.overviewMonthChange.textContent = '';
+    }
+  }
+
+  // Reminder count
+  const dueCount = state.dueReminderCount || 0;
+  if (els.overviewReminderCount) {
+    els.overviewReminderCount.textContent = dueCount;
+  }
+  if (els.overviewReminderDesc) {
+    els.overviewReminderDesc.textContent = dueCount > 0 ? `${dueCount} 条待处理` : '暂无待办';
+  }
+
+  // Latest 3 records
+  if (els.overviewLatestList) {
+    const sorted = [...state.records].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const latest = sorted.slice(0, 3);
+
+    if (latest.length === 0) {
+      els.overviewLatestList.innerHTML = '<div class="overview-card-empty">暂无记录</div>';
+    } else {
+      els.overviewLatestList.innerHTML = latest.map(r => {
+        const diag = r.diagnosis && r.diagnosis.length > 18 ? r.diagnosis.slice(0, 18) + '…' : (r.diagnosis || '');
+        return `<div class="overview-card-item" data-record-id="${r.id}">
+          <div class="overview-item-main">${escapeHtml(r.hospital || '未知医院')}</div>
+          <div class="overview-item-sub">${escapeHtml(formatDate(r.date))}${diag ? ' · ' + escapeHtml(diag) : ''}</div>
+        </div>`;
+      }).join('');
+
+      // Click to open detail modal
+      els.overviewLatestList.querySelectorAll('.overview-card-item').forEach(el => {
+        el.addEventListener('click', () => {
+          const id = el.dataset.recordId;
+          if (id) openDetailModal(id);
+        });
+      });
+    }
+  }
+}
+
 function render() {
   renderRecords();
   renderPhotos();
   updateSidebarStats();
   updateSidebarReminders();
   updateLoadMoreBtn();
+  renderOverviewCards();
+}
+
+// ===========================
+// Reminder List Modal
+// ===========================
+function openReminderListModal() {
+  const modal = els.reminderListModal;
+  const container = els.reminderListContainer;
+  const subtitle = els.reminderListSubtitle;
+  if (!modal || !container) return;
+
+  // Load all reminders (not just due) from the API
+  loadReminderListModal();
+  modal.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+async function loadReminderListModal() {
+  const container = els.reminderListContainer;
+  const subtitle = els.reminderListSubtitle;
+  if (!container) return;
+
+  container.innerHTML = '<div class="reminder-modal-empty">加载中...</div>';
+
+  try {
+    const data = await apiFetch('/reminders');
+    if (!data || !data.reminders) {
+      container.innerHTML = '<div class="reminder-modal-empty">暂无提醒</div>';
+      if (subtitle) subtitle.textContent = '暂无提醒数据';
+      return;
+    }
+
+    // Filter by active member
+    const activeMemberId = state.activeMemberId;
+    let reminders = activeMemberId
+      ? data.reminders.filter(r => {
+          const record = state.records.find(rec => rec.id === r.recordId);
+          return record && record.memberId === activeMemberId;
+        })
+      : data.reminders;
+
+    if (reminders.length === 0) {
+      container.innerHTML = '<div class="reminder-modal-empty">暂无提醒</div>';
+      if (subtitle) subtitle.textContent = '暂无待办提醒';
+      return;
+    }
+
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+
+    // Sort: overdue first, then today, then upcoming
+    reminders.sort((a, b) => {
+      const aOverdue = a.followUpDate < today ? 0 : 1;
+      const bOverdue = b.followUpDate < today ? 0 : 1;
+      if (aOverdue !== bOverdue) return aOverdue - bOverdue;
+      return new Date(a.followUpDate) - new Date(b.followUpDate);
+    });
+
+    if (subtitle) subtitle.textContent = `共 ${reminders.length} 条提醒`;
+
+    container.innerHTML = reminders.map(r => {
+      const isOverdue = r.followUpDate < today;
+      const isToday = r.followUpDate === today;
+      const statusClass = isOverdue ? 'overdue' : isToday ? 'today' : 'upcoming';
+      const statusText = isOverdue ? '已过期' : isToday ? '今天' : formatDate(r.followUpDate);
+
+      return `<div class="reminder-modal-item ${statusClass}" data-record-id="${r.recordId}">
+        <div class="reminder-modal-status">${statusText}</div>
+        <div class="reminder-modal-body">
+          <div class="reminder-modal-patient">${escapeHtml(r.patient)}</div>
+          <span class="reminder-modal-dept">${escapeHtml(r.hospital)} · ${escapeHtml(r.department)}</span>
+          ${r.note ? `<span class="reminder-modal-note">${escapeHtml(r.note)}</span>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+
+    // Click to view record detail
+    container.querySelectorAll('.reminder-modal-item').forEach(el => {
+      el.addEventListener('click', () => {
+        const id = el.dataset.recordId;
+        if (id) {
+          closeReminderListModal();
+          // Small delay so modal closes smoothly before detail opens
+          setTimeout(() => {
+            const record = state.records.find(r => r.id === id);
+            if (record) openDetailModal(record.id);
+            else showToast('未找到该记录', 'error');
+          }, 150);
+        }
+      });
+    });
+  } catch (err) {
+    console.error('加载提醒列表失败:', err);
+    container.innerHTML = '<div class="reminder-modal-empty">加载失败</div>';
+  }
+}
+
+function closeReminderListModal() {
+  const modal = els.reminderListModal;
+  if (!modal) return;
+  modal.classList.remove('active');
+  document.body.style.overflow = '';
 }
 
 function updateSidebarReminders() {
@@ -2367,6 +2693,7 @@ async function handleFormSubmit(e) {
 
     closeModal();
     render();
+    loadDueReminders();
     showToast('保存成功', 'success');
   } catch (err) {
     showToast(err.message || '保存失败', 'error');
