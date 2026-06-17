@@ -1,6 +1,7 @@
 # 健康记 - 全家健康管理平台
 
 一个功能全面的家庭健康记录管理应用，帮助您安全地存储和查看就医历史，追踪健康指标，管理用药提醒。
+<img width="1920" height="911" alt="image" src="https://github.com/user-attachments/assets/664e96a6-1350-4c35-85ea-120f9c7cc62b" />
 
 ## 功能特点
 
