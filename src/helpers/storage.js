@@ -31,6 +31,11 @@ async function initStorage() {
         ];
         needsSave = true;
       }
+      // Migrate to explicit role field (previously admin-ness was inferred from username === 'admin')
+      if (!user.role) {
+        user.role = user.username === 'admin' ? 'admin' : 'user';
+        needsSave = true;
+      }
     }
     if (needsSave) {
       await saveUsers(users);

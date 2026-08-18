@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const { getUsers } = require('../helpers/storage');
+const { getJwtSecret } = require('../helpers/secret');
 
 function authenticate(req, res, next) {
   const authHeader = req.headers.authorization;
@@ -8,7 +9,7 @@ function authenticate(req, res, next) {
   }
   const token = authHeader.slice(7);
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'yicheng-medical-scrt-2024');
+    const decoded = jwt.verify(token, getJwtSecret());
     req.userId = decoded.userId;
     req.username = decoded.username;
     next();
@@ -20,11 +21,19 @@ function authenticate(req, res, next) {
   }
 }
 
-function adminGuard(req, res, next) {
-  if (req.username !== 'admin') {
-    return res.status(403).json({ error: '需要管理员权限' });
+// Role is looked up fresh from storage on every request (not embedded in the JWT)
+// so that revoking admin access takes effect immediately instead of waiting for token expiry.
+async function adminGuard(req, res, next) {
+  try {
+    const users = await getUsers();
+    const user = users.find(u => u.userId === req.userId);
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ error: '需要管理员权限' });
+    }
+    next();
+  } catch (err) {
+    res.status(500).json({ error: '权限校验失败' });
   }
-  next();
 }
 
 module.exports = { authenticate, adminGuard };

@@ -1,6 +1,5 @@
 node_modules/
-data/users.json
-data/records.json
-data/config.json
+data/
+.claude/
 .DS_Store
 *.log

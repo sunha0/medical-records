@@ -2,8 +2,12 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { getUsers, saveUsers } = require('../helpers/storage');
+const { getJwtSecret } = require('../helpers/secret');
 
 const JWT_EXPIRES = '7d';
+// 'admin' is granted admin privileges via the role field (see storage.js migration) — reserve
+// the name so a new registration can't impersonate/squat the admin account.
+const RESERVED_USERNAMES = ['admin'];
 
 module.exports = function(app) {
   // Register
@@ -20,6 +24,9 @@ module.exports = function(app) {
       if (password.length < 6 || password.length > 50) {
         return res.status(400).json({ error: '密码需6-50位' });
       }
+      if (RESERVED_USERNAMES.includes(username.toLowerCase())) {
+        return res.status(400).json({ error: '该用户名不可用' });
+      }
 
       const users = await getUsers();
       if (users.find(u => u.username === username)) {
@@ -32,6 +39,7 @@ module.exports = function(app) {
         userId,
         username,
         password: hashed,
+        role: 'user',
         createdAt: Date.now(),
         settings: { theme: 'light', activeMemberId: null },
         familyMembers: [
@@ -40,7 +48,7 @@ module.exports = function(app) {
       });
       await saveUsers(users);
 
-      const token = jwt.sign({ userId, username }, process.env.JWT_SECRET || 'yicheng-medical-scrt-2024', { expiresIn: JWT_EXPIRES });
+      const token = jwt.sign({ userId, username }, getJwtSecret(), { expiresIn: JWT_EXPIRES });
       res.json({ success: true, token, userId, username });
     } catch (err) {
       console.error('注册失败:', err);
@@ -67,7 +75,7 @@ module.exports = function(app) {
         return res.status(401).json({ error: '用户名或密码错误' });
       }
 
-      const token = jwt.sign({ userId: user.userId, username: user.username }, process.env.JWT_SECRET || 'yicheng-medical-scrt-2024', { expiresIn: JWT_EXPIRES });
+      const token = jwt.sign({ userId: user.userId, username: user.username }, getJwtSecret(), { expiresIn: JWT_EXPIRES });
       res.json({ success: true, token, userId: user.userId, username: user.username });
     } catch (err) {
       console.error('登录失败:', err);
