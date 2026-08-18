@@ -270,15 +270,15 @@
                 <option value="halfyear">近半年</option>
                 <option value="year">近一年</option>
               </select>
-              <button class="filter-toggle" onclick="document.querySelector('.advanced-filters').classList.toggle('active')">高级筛选</button>
-              <button class="btn btn-ghost" id="batchModeBtn" onclick="toggleBatchMode()" title="批量操作">
+              <button class="filter-toggle" id="advancedFiltersToggle">高级筛选</button>
+              <button class="btn btn-ghost" id="batchModeBtn" title="批量操作">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
                   <path d="M9 11l3 3L22 4"/>
                   <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
                 </svg>
                 <span style="font-size: 0.8rem; margin-left: 4px;">批量</span>
               </button>
-              <button class="btn btn-ghost" onclick="clearFilters()" title="清除筛选">
+              <button class="btn btn-ghost" id="clearFiltersBtn" title="清除筛选">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
                   <path d="M18 6L6 18M6 6l12 12"/>
                 </svg>
@@ -335,12 +335,12 @@
               <label>最高费用</label>
               <input type="number" id="costMaxFilter" placeholder="不限" min="0">
             </div>
-            <button class="btn btn-primary btn-sm" onclick="applyAdvancedFilters()">应用筛选</button>
+            <button class="btn btn-primary btn-sm" id="applyAdvancedFiltersBtn">应用筛选</button>
           </div>
           <div class="records-list" id="recordsList"></div>
           <div class="batch-actions-bar" id="batchActionsBar">
             <span class="selected-count" id="batchSelectedCount">已选择 <strong>0</strong> 条记录</span>
-            <button class="btn btn-secondary" onclick="batchExportRecords()">
+            <button class="btn btn-secondary" id="batchExportBtn">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                 <polyline points="7 10 12 15 17 10"/>
@@ -348,14 +348,14 @@
               </svg>
               导出选中
             </button>
-            <button class="btn btn-danger" onclick="batchDeleteRecords()">
+            <button class="btn btn-danger" id="batchDeleteBtn">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
                 <polyline points="3 6 5 6 21 6"/>
                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
               </svg>
               删除选中
             </button>
-            <button class="btn btn-ghost" onclick="toggleBatchMode()">取消</button>
+            <button class="btn btn-ghost" id="batchCancelBtn">取消</button>
           </div>
           <div class="load-more-wrapper" id="loadMoreWrapper">
             <button class="btn btn-secondary" id="loadMoreBtn" style="display: none;">加载更多</button>
@@ -402,7 +402,7 @@
               </select>
               <input type="date" id="timelineStartDate" class="filter-select" style="max-width:150px;" title="开始日期">
               <input type="date" id="timelineEndDate" class="filter-select" style="max-width:150px;" title="结束日期">
-              <button class="btn btn-ghost" onclick="renderTimeline()" style="font-size:0.85rem;">筛选</button>
+              <button class="btn btn-ghost" id="timelineFilterBtn" style="font-size:0.85rem;">筛选</button>
             </div>
           </div>
           <div class="timeline-container" id="timelineContainer"></div>
@@ -1136,13 +1136,7 @@
   </div>
 
   <script src="js/app.js"></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js');
-      });
-    }
-  </script>
+  <script src="js/sw-register.js"></script>
 
 </body>
 </html>

@@ -1,11 +1,38 @@
 const express = require('express');
 const path = require('path');
+const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const { initStorage } = require('./src/helpers/storage');
 const { authenticate, adminGuard } = require('./src/middleware/authenticate');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// CSP is scoped to what the app actually loads: chart.js/jspdf/html2canvas/sortablejs
+// from their CDNs, Google Fonts stylesheet + font files, plus 'unsafe-inline' for
+// style-src since the frontend relies heavily on inline style="" attributes.
+// script-src has no 'unsafe-inline' — that's the part that actually blocks
+// injected <script>/onXXX handlers. upgradeInsecureRequests is disabled because
+// this app is served over plain HTTP here — with it on, the browser force-upgrades
+// every subresource request (css/js/fonts/CDN) to https, which has nothing
+// listening and silently kills every asset load.
+app.use(helmet({
+  contentSecurityPolicy: {
+    useDefaults: true,
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", 'https://cdn.jsdelivr.net', 'https://cdnjs.cloudflare.com'],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+      imgSrc: ["'self'", 'data:'],
+      connectSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      frameAncestors: ["'self'"],
+      upgradeInsecureRequests: null
+    }
+  }
+}));
 
 app.use(express.json({ limit: '50mb' }));
 

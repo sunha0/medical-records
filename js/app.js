@@ -551,10 +551,23 @@ function initEventListeners() {
   costMaxFilter && costMaxFilter.addEventListener('input', (e) => { state.costMax = e.target.value; });
 
   // Apply advanced filters
-  window.applyAdvancedFilters = function() {
+  $('#applyAdvancedFiltersBtn')?.addEventListener('click', () => {
     state.pagination.page = 1;
     loadData();
-  };
+  });
+
+  // Toggle advanced filters panel
+  $('#advancedFiltersToggle')?.addEventListener('click', () => {
+    $('.advanced-filters')?.classList.toggle('active');
+  });
+
+  // Batch mode / clear filters / timeline filter buttons
+  $('#batchModeBtn')?.addEventListener('click', toggleBatchMode);
+  $('#batchCancelBtn')?.addEventListener('click', toggleBatchMode);
+  $('#clearFiltersBtn')?.addEventListener('click', clearFilters);
+  $('#batchExportBtn')?.addEventListener('click', batchExportRecords);
+  $('#batchDeleteBtn')?.addEventListener('click', batchDeleteRecords);
+  $('#timelineFilterBtn')?.addEventListener('click', renderTimeline);
 
   // Theme toggle button in header
   const themeToggleBtn = $('#themeToggleBtn');
@@ -836,7 +849,7 @@ function renderReminders() {
     const statusText = isOverdue ? '已过期' : isToday ? '今天' : formatDate(r.followUpDate);
 
     return `
-      <div class="reminder-item ${statusClass}" onclick="viewReminderRecord('${r.recordId}')" style="cursor: pointer;" title="点击查看就医记录">
+      <div class="reminder-item ${statusClass}" data-record-id="${r.recordId}" style="cursor: pointer;" title="点击查看就医记录">
         <div class="reminder-status">${statusText}</div>
         <div class="reminder-info">
           <span class="reminder-patient">${escapeHtml(r.patient)}</span>
@@ -846,6 +859,10 @@ function renderReminders() {
       </div>
     `;
   }).join('');
+
+  container.querySelectorAll('.reminder-item[data-record-id]').forEach(el => {
+    el.addEventListener('click', () => viewReminderRecord(el.dataset.recordId));
+  });
 }
 
 function viewReminderRecord(recordId) {
@@ -906,7 +923,7 @@ function renderFamilySwitcher() {
     <div class="family-dropdown" id="familyDropdown">
       ${state.familyMembers.map(m => `
         <button class="family-dropdown-item ${m.memberId === state.activeMemberId || (!state.activeMemberId && m.relation === '自己') ? 'active' : ''}"
-                onclick="switchFamilyMember('${m.memberId}')">
+                data-member-id="${m.memberId}">
           <span class="member-avatar">${escapeHtml(m.name.charAt(0))}</span>
           <div class="member-info">
             <span class="member-name">${escapeHtml(m.name)}</span>
@@ -916,7 +933,7 @@ function renderFamilySwitcher() {
         </button>
       `).join('')}
       <div class="family-dropdown-divider"></div>
-      <button class="family-dropdown-item manage" onclick="openFamilyMemberModal()">
+      <button class="family-dropdown-item manage" id="manageFamilyMembersBtn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="3"/>
           <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
@@ -940,6 +957,12 @@ function renderFamilySwitcher() {
     dropdown.classList.remove('active');
     btn.classList.remove('active');
   });
+
+  dropdown.querySelectorAll('.family-dropdown-item[data-member-id]').forEach(el => {
+    el.addEventListener('click', () => switchFamilyMember(el.dataset.memberId));
+  });
+
+  $('#manageFamilyMembersBtn')?.addEventListener('click', openFamilyMemberModal);
 }
 
 async function switchFamilyMember(memberId) {
@@ -998,7 +1021,7 @@ function renderFamilyMemberList() {
         <span class="member-relation-lg">${escapeHtml(m.relation)}</span>
       </div>
       ${m.relation !== '自己' ? `
-        <button class="btn btn-sm btn-ghost" onclick="deleteFamilyMember('${m.memberId}', '${escapeHtml(m.name)}')">
+        <button class="btn btn-sm btn-ghost" data-member-id="${m.memberId}" data-member-name="${escapeHtml(m.name)}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
             <polyline points="3 6 5 6 21 6"/>
             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
@@ -1007,6 +1030,10 @@ function renderFamilyMemberList() {
       ` : ''}
     </div>
   `).join('');
+
+  list.querySelectorAll('.btn-ghost[data-member-id]').forEach(el => {
+    el.addEventListener('click', () => deleteFamilyMember(el.dataset.memberId, el.dataset.memberName));
+  });
 
   // Initialize SortableJS
   if (typeof Sortable !== 'undefined') {
@@ -1103,12 +1130,16 @@ function renderUsers() {
       <td>${user.recordCount} 条</td>
       <td>${user.createdAt ? formatDate(new Date(user.createdAt).toISOString().split('T')[0]) : '未知'}</td>
       <td>
-        <button class="btn btn-sm btn-danger" onclick="openDeleteUserConfirm('${user.userId}', '${escapeHtml(user.username)}')">
+        <button class="btn btn-sm btn-danger" data-user-id="${user.userId}" data-username="${escapeHtml(user.username)}">
           删除
         </button>
       </td>
     </tr>
   `).join('');
+
+  els.usersTableBody.querySelectorAll('.btn-danger[data-user-id]').forEach(el => {
+    el.addEventListener('click', () => openDeleteUserConfirm(el.dataset.userId, el.dataset.username));
+  });
 }
 
 function openDeleteUserConfirm(userId, username) {
@@ -1733,7 +1764,7 @@ function renderHealthTimeline(records) {
         <div class="timeline-month-label">${formatDate(month + '-01')}</div>
         <div class="timeline-records">
           ${groupedByMonth[month].map(r => `
-            <div class="timeline-record" onclick="openDetailModal('${r.id}')">
+            <div class="timeline-record" data-record-id="${r.id}">
               <span class="timeline-patient">${escapeHtml(r.patient)}</span>
               <span class="timeline-hospital">${escapeHtml(r.hospital)}</span>
               <span class="timeline-dept">${escapeHtml(r.department)}</span>
@@ -1744,6 +1775,10 @@ function renderHealthTimeline(records) {
       </div>
     `).join('')}
   `;
+
+  container.querySelectorAll('.timeline-record[data-record-id]').forEach(el => {
+    el.addEventListener('click', () => openDetailModal(el.dataset.recordId));
+  });
 }
 // ===========================
 // Health Metrics
@@ -1786,13 +1821,17 @@ function renderMetrics(metrics) {
         <span class="metric-type">${typeLabels[m.type] || m.type}</span>
         <span class="metric-value">${m.value} <small>${m.unit || ''}</small></span>
         <span class="metric-date">${m.date || ''}</span>
-        <button class="btn btn-danger btn-sm" onclick="deleteMetric('${m.id}')" title="删除">
+        <button class="btn btn-danger btn-sm" data-metric-id="${m.id}" title="删除">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
         </button>
       </div>
       ${m.notes ? `<div class="metric-notes">${escapeHtml(m.notes)}</div>` : ''}
     </div>`;
   }).join('');
+
+  els.metricsList.querySelectorAll('.btn-danger[data-metric-id]').forEach(el => {
+    el.addEventListener('click', () => deleteMetric(el.dataset.metricId));
+  });
 }
 
 function renderMetricsChart(metrics) {
@@ -1931,7 +1970,7 @@ function renderMedications(medications) {
   els.medicationsEmpty.style.display = 'none';
 
   els.medicationsList.innerHTML = medications.map(m => `
-    <div class="medication-card ${m.active ? '' : 'inactive'}">
+    <div class="medication-card ${m.active ? '' : 'inactive'}" data-medication-id="${m.id}">
       <div class="medication-header">
         <div class="medication-name">
           <span class="medication-status ${m.active ? 'active' : ''}"></span>
@@ -1939,25 +1978,32 @@ function renderMedications(medications) {
         </div>
         <div class="medication-actions">
           <label class="switch">
-            <input type="checkbox" ${m.active ? 'checked' : ''} onchange="toggleMedication('${m.id}', this.checked)">
+            <input type="checkbox" class="medication-toggle" ${m.active ? 'checked' : ''}>
             <span class="switch-slider"></span>
           </label>
-          <button class="btn btn-ghost btn-sm" onclick="editMedication('${m.id}')" title="编辑">
+          <button class="btn btn-ghost btn-sm medication-edit" title="编辑">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           </button>
-          <button class="btn btn-danger btn-sm" onclick="deleteMedication('${m.id}')" title="删除">
+          <button class="btn btn-danger btn-sm medication-delete" title="删除">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
           </button>
         </div>
       </div>
       <div class="medication-details">
         <span class="medication-dosage">${escapeHtml(m.dosage)} ${escapeHtml(m.unit)} | 每日${m.timesPerDay}次</span>
-        ${m.timeSlots && m.timeSlots.length > 0 ? `<span class="medication-times">${m.timeSlots.join(', ')}</span>` : ''}
+        ${m.timeSlots && m.timeSlots.length > 0 ? `<span class="medication-times">${m.timeSlots.map(escapeHtml).join(', ')}</span>` : ''}
         <span class="medication-period">${m.startDate || ''}${m.endDate ? ' ~ ' + m.endDate : ''}</span>
       </div>
       ${m.notes ? `<div class="medication-notes">${escapeHtml(m.notes)}</div>` : ''}
     </div>
   `).join('');
+
+  els.medicationsList.querySelectorAll('.medication-card[data-medication-id]').forEach(card => {
+    const id = card.dataset.medicationId;
+    card.querySelector('.medication-toggle')?.addEventListener('change', (e) => toggleMedication(id, e.target.checked));
+    card.querySelector('.medication-edit')?.addEventListener('click', () => editMedication(id));
+    card.querySelector('.medication-delete')?.addEventListener('click', () => deleteMedication(id));
+  });
 }
 
 function openMedicationModal(editData) {
@@ -2263,7 +2309,7 @@ function renderTimeline() {
       html += `<div class="timeline-entry${isLast ? ' last' : ''}">
         <div class="timeline-dot"></div>
         ${isLast ? '' : '<div class="timeline-line"></div>'}
-        <div class="timeline-card" onclick="openDetailModal('${r.id}')">
+        <div class="timeline-card" data-record-id="${r.id}">
           <div class="timeline-card-header">
             <span class="timeline-date">${formatDate(r.date)}</span>
             ${r.cost ? `<span class="timeline-cost">¥${r.cost}</span>` : ''}
@@ -2282,6 +2328,10 @@ function renderTimeline() {
   });
 
   els.timelineContainer.innerHTML = html;
+
+  els.timelineContainer.querySelectorAll('.timeline-card[data-record-id]').forEach(el => {
+    el.addEventListener('click', () => openDetailModal(el.dataset.recordId));
+  });
 }
 
 function populateTimelineFilter() {
@@ -2678,6 +2728,10 @@ function renderRecords() {
     card.innerHTML = createRecordCard(record);
     const article = card.firstElementChild;
     article.addEventListener('click', () => openDetailModal(record.id));
+    article.querySelector('.record-select')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleRecordSelection(record.id);
+    });
     els.recordsList.appendChild(article);
   });
 }
@@ -2697,7 +2751,7 @@ function createRecordCard(record) {
     : '';
 
   const checkboxHtml = state.batchMode
-    ? `<label class="card-checkbox"><input type="checkbox" onclick="event.stopPropagation(); toggleRecordSelection('${record.id}');"></label>`
+    ? `<label class="card-checkbox"><input type="checkbox" class="record-select"></label>`
     : '';
 
   return `

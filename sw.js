@@ -1,4 +1,4 @@
-const CACHE_NAME = 'health-records-v1';
+const CACHE_NAME = 'health-records-v2';
 
 // Files to cache on install
 const PRECACHE_URLS = [
