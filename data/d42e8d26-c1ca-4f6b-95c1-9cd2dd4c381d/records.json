@@ -1,0 +1,110 @@
+[
+  {
+    "id": "rec_577eda3c-103e-40c7-9fcb-ef236850e0ad",
+    "memberId": "f284a86d-38ed-4702-8256-21a7937eb5a6",
+    "patient": "小麦",
+    "date": "2026-06-11",
+    "hospital": "同济",
+    "department": "妇科",
+    "doctor": "张三",
+    "diagnosis": "测试",
+    "symptoms": "啊擦除",
+    "prescription": "安达市的",
+    "cost": 123,
+    "images": [
+      {
+        "id": "e6f5f85f-241c-465d-a5d0-f05caa0f9039",
+        "url": "/uploads/4d4c5ab7-bf1f-4e8b-a4bc-d87ed03e765f.png",
+        "originalName": "otel.png",
+        "size": 107005,
+        "tags": []
+      }
+    ],
+    "reminder": {
+      "enabled": false,
+      "followUpDate": null,
+      "note": ""
+    },
+    "createdAt": 1781160958151,
+    "updatedAt": 1781160984100
+  },
+  {
+    "id": "rec_a32c57a4-d715-4b53-9376-15c00bf18677",
+    "memberId": "1870f028-09b7-4722-bb74-5c6635950890",
+    "patient": "大麦",
+    "date": "2026-06-11",
+    "hospital": "同济",
+    "department": "妇科",
+    "doctor": "张三",
+    "diagnosis": "测试",
+    "symptoms": "啊擦除",
+    "prescription": "安达市的",
+    "cost": 0.03,
+    "images": [],
+    "reminder": {
+      "enabled": false,
+      "followUpDate": null,
+      "note": ""
+    },
+    "createdAt": 1781160946385,
+    "updatedAt": 1781160946385
+  },
+  {
+    "id": "rec_a492c7d8-1793-4e79-a088-1a25de7ed94f",
+    "memberId": "d42e8d26-c1ca-4f6b-95c1-9cd2dd4c381d",
+    "patient": "admin",
+    "date": "2026-06-10",
+    "hospital": "同济",
+    "department": "妇科",
+    "doctor": "张三",
+    "diagnosis": "测试",
+    "symptoms": "啊擦除",
+    "prescription": "安达市的",
+    "cost": 0.03,
+    "images": [
+      {
+        "id": "3ce509d5-26e4-4e29-9634-9bc6af6ca7ef",
+        "url": "/uploads/0fb538b2-0e0c-4e95-a908-f9be241c8145.png",
+        "originalName": "license.png",
+        "size": 43589,
+        "tags": []
+      }
+    ],
+    "reminder": {
+      "enabled": true,
+      "followUpDate": "2026-06-24",
+      "note": "哈哈"
+    },
+    "createdAt": 1781010968941,
+    "updatedAt": 1781010968941
+  },
+  {
+    "id": "rec_83eb8688-29fb-4cfa-8d16-073bbe013086",
+    "memberId": "a88fc639-38cb-43a9-8f67-5eda9ffb4c43",
+    "patient": "小麦",
+    "date": "2026-06-09",
+    "hospital": "协和医院",
+    "department": "儿科",
+    "doctor": "张三",
+    "diagnosis": "发烧",
+    "symptoms": "没事",
+    "prescription": "清淡饮食",
+    "cost": 258.6,
+    "images": [
+      {
+        "id": "db6a057a-82aa-4b14-a680-0738bc514bcf",
+        "url": "/uploads/4219fe36-627c-4699-a945-69ca9892f592.png",
+        "originalName": "license.png",
+        "size": 43589,
+        "tags": []
+      }
+    ],
+    "reminder": {
+      "enabled": true,
+      "followUpDate": "2026-06-09",
+      "note": "哈哈"
+    },
+    "createdAt": 1780999679870,
+    "updatedAt": 1781010841293
+  }
+]

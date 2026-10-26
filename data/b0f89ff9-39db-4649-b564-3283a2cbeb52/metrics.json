@@ -1,0 +1,62 @@
+[
+  {
+    "id": "met_1214f24c-f5bd-4e53-97d2-0082554676fa",
+    "type": "blood_sugar",
+    "value": 1000,
+    "unit": "mmol/L",
+    "date": "2026-06-17",
+    "notes": "",
+    "memberId": "b0f89ff9-39db-4649-b564-3283a2cbeb52",
+    "createdAt": 1781666628722
+  },
+  {
+    "id": "met_9f4d1027-6a5c-42d0-aa1d-e235e403acd9",
+    "type": "weight",
+    "value": 60,
+    "unit": "kg",
+    "date": "2026-06-17",
+    "notes": "",
+    "memberId": "b0f89ff9-39db-4649-b564-3283a2cbeb52",
+    "createdAt": 1781664605671
+  },
+  {
+    "id": "met_6ba22f1c-dfa2-4e54-8038-d779e5c8b0c0",
+    "type": "blood_pressure",
+    "value": 150,
+    "unit": "mmHg",
+    "date": "2026-06-17",
+    "notes": "",
+    "memberId": "b0f89ff9-39db-4649-b564-3283a2cbeb52",
+    "createdAt": 1781664592245
+  },
+  {
+    "id": "met_c322642a-c0e6-415c-9f8a-10c37853d1ef",
+    "type": "height",
+    "value": 120,
+    "unit": "cm",
+    "date": "2026-06-17",
+    "notes": "",
+    "memberId": "b0f89ff9-39db-4649-b564-3283a2cbeb52",
+    "createdAt": 1781663583530
+  },
+  {
+    "id": "met_b6777917-23ab-4af8-a04b-14e2265938ad",
+    "type": "blood_pressure",
+    "value": 120,
+    "unit": "mmHg",
+    "date": "2026-06-17",
+    "notes": "",
+    "memberId": "b0f89ff9-39db-4649-b564-3283a2cbeb52",
+    "createdAt": 1781662967602
+  },
+  {
+    "id": "met_18420f16-f3ca-438f-a8f0-1e159445c82f",
+    "type": "blood_sugar",
+    "value": 120,
+    "unit": "mmol/L",
+    "date": "2026-06-17",
+    "notes": "",
+    "memberId": "b0f89ff9-39db-4649-b564-3283a2cbeb52",
+    "createdAt": 1781659767578
+  }
+]

@@ -1,0 +1,27 @@
+[
+  {
+    "userId": "b0f89ff9-39db-4649-b564-3283a2cbeb52",
+    "username": "admin",
+    "password": "$2a$10$3.mErxedj98j/lwfSIW7gO.oZ9yjrZwEAfQtM/l6.oCAeZTkri6li",
+    "createdAt": 1781505877630,
+    "settings": {
+      "theme": "light",
+      "activeMemberId": "b0f89ff9-39db-4649-b564-3283a2cbeb52"
+    },
+    "familyMembers": [
+      {
+        "memberId": "b0f89ff9-39db-4649-b564-3283a2cbeb52",
+        "name": "admin",
+        "relation": "自己",
+        "createdAt": 1781505877630
+      },
+      {
+        "memberId": "99b39d0a-7fa7-40f1-9793-0e85a1649964",
+        "name": "小麦",
+        "relation": "其他",
+        "createdAt": 1781675644698
+      }
+    ],
+    "role": "admin"
+  }
+]

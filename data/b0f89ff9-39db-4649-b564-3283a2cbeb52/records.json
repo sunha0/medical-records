@@ -1,0 +1,102 @@
+[
+  {
+    "id": "rec_53aa6f25-6024-46d6-8933-6cca95ad0acb",
+    "memberId": "b0f89ff9-39db-4649-b564-3283a2cbeb52",
+    "patient": "admin",
+    "date": "2026-06-17",
+    "hospital": "中医院",
+    "department": "耳鼻喉科",
+    "doctor": "张三",
+    "diagnosis": "心律不齐",
+    "symptoms": "aa",
+    "prescription": "aaa",
+    "cost": 500,
+    "images": [],
+    "reminder": {
+      "enabled": true,
+      "followUpDate": "2026-06-17",
+      "note": "aa"
+    },
+    "createdAt": 1781677386450,
+    "updatedAt": 1781677386450
+  },
+  {
+    "id": "rec_e7298763-6061-4490-86c0-1ec5ef5c54f1",
+    "memberId": "b0f89ff9-39db-4649-b564-3283a2cbeb52",
+    "patient": "admin",
+    "date": "2026-06-17",
+    "hospital": "第三医院",
+    "department": "皮肤科",
+    "doctor": "张三",
+    "diagnosis": "心律不齐",
+    "symptoms": "",
+    "prescription": "",
+    "cost": 500,
+    "images": [],
+    "reminder": {
+      "enabled": true,
+      "followUpDate": "2026-06-17",
+      "note": ""
+    },
+    "createdAt": 1781675966949,
+    "updatedAt": 1781675966949
+  },
+  {
+    "id": "rec_26f32bf5-1f47-471f-90b4-4f799c87194f",
+    "memberId": "b0f89ff9-39db-4649-b564-3283a2cbeb52",
+    "patient": "admin",
+    "date": "2026-06-17",
+    "hospital": "同济",
+    "department": "脑科",
+    "doctor": "张三",
+    "diagnosis": "心律不齐",
+    "symptoms": "",
+    "prescription": "",
+    "cost": 500,
+    "images": [
+      {
+        "id": "e365e973-4569-4380-923a-d23398056037",
+        "url": "/uploads/1be915f4-c18d-418e-891c-db121d68f65c.png",
+        "originalName": "otel.png",
+        "size": 107005,
+        "tags": []
+      }
+    ],
+    "reminder": {
+      "enabled": true,
+      "followUpDate": "2026-06-17",
+      "note": ""
+    },
+    "createdAt": 1781675913572,
+    "updatedAt": 1781675913572
+  },
+  {
+    "id": "rec_0664c9e8-0fa1-4cc0-91ec-b7f4a81bfd2e",
+    "memberId": "b0f89ff9-39db-4649-b564-3283a2cbeb52",
+    "patient": "admin",
+    "date": "2026-06-17",
+    "hospital": "协和医院",
+    "department": "儿科",
+    "doctor": "",
+    "diagnosis": "发烧",
+    "symptoms": "",
+    "prescription": "",
+    "cost": 500,
+    "images": [
+      {
+        "id": "0934ccdb-21c3-457d-8223-5f7429386769",
+        "url": "/uploads/8c9d39e2-c8b5-442c-868c-36407bf40df9.png",
+        "originalName": "APIè°ç¨.png",
+        "size": 18447,
+        "tags": []
+      }
+    ],
+    "reminder": {
+      "enabled": true,
+      "followUpDate": "2026-06-19",
+      "note": ""
+    },
+    "createdAt": 1781675871060,
+    "updatedAt": 1781675871060
+  }
+]

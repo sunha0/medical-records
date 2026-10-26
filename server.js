@@ -2,7 +2,7 @@ const express = require('express');
 const path = require('path');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const { initStorage } = require('./src/helpers/storage');
+const { initStorage, UPLOADS_DIR } = require('./src/helpers/storage');
 const { authenticate, adminGuard } = require('./src/middleware/authenticate');
 
 const app = express();
@@ -52,7 +52,7 @@ app.use('/js', express.static(path.join(__dirname, 'js')));
 // Authorization header), so unguessable UUID filenames are the only thing standing
 // between a URL and the file — nosniff stops browsers from executing anything other
 // than the declared image content-type even if that's ever wrong.
-app.use('/uploads', express.static(path.join(__dirname, 'data', 'uploads'), {
+app.use('/uploads', express.static(UPLOADS_DIR, {
   setHeaders: (res) => res.setHeader('X-Content-Type-Options', 'nosniff')
 }));
 

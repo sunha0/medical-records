@@ -3,7 +3,7 @@ const fsSync = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 
-const DATA_DIR = path.join(__dirname, '..', '..', 'data');
+const DATA_DIR = './data';
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
 
@@ -77,7 +77,6 @@ async function saveUserRecords(userId, records) {
 
 // --- Image Migration (from old base64 format) ---
 async function migrateBase64Images(records, userId) {
-  const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
   const migrated = [];
   for (const record of records) {
     if (record.images && record.images.length > 0) {
