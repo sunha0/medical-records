@@ -74,7 +74,7 @@ app.use('/api/login', authLimiter);
 app.use('/api/register', authLimiter);
 
 // --- Init Storage ---
-initStorage();
+const storageReady = initStorage();
 
 // --- Public Routes (no auth required) ---
 require('./src/routes/auth')(app);
@@ -106,8 +106,15 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: '服务器错误，请稍后重试' });
 });
 
-app.listen(PORT, () => {
-  console.log(`健康记服务已启动: http://localhost:${PORT}`);
-  console.log('请注册账号后使用');
-});
+storageReady
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`健康记服务已启动: http://localhost:${PORT}`);
+      console.log('请注册账号后使用');
+    });
+  })
+  .catch(err => {
+    console.error('[Storage] 初始化失败:', err);
+    process.exit(1);
+  });
 
