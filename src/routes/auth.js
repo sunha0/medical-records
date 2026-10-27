@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { getUsers, saveUsers } = require('../helpers/storage');
 const { getJwtSecret } = require('../helpers/secret');
+const { authenticate } = require('../middleware/authenticate');
 
 const JWT_EXPIRES = '7d';
 // 'admin' is granted admin privileges via the role field (see storage.js migration) — reserve
@@ -84,7 +85,7 @@ module.exports = function(app) {
   });
 
   // Change password
-  app.post('/api/change-password', async (req, res) => {
+  app.post('/api/change-password', authenticate, async (req, res) => {
     try {
       const { oldPassword, newPassword } = req.body;
 
