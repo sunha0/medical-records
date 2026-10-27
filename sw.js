@@ -1,4 +1,4 @@
-const CACHE_NAME = 'health-records-v2';
+const CACHE_NAME = 'health-records-v3';
 
 // Files to cache on install
 const PRECACHE_URLS = [
@@ -36,6 +36,12 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const { request } = event;
   const url = new URL(request.url);
+
+  // Private uploaded images must never be cached by the service worker.
+  if (url.pathname.startsWith('/uploads/')) {
+    event.respondWith(fetch(request));
+    return;
+  }
 
   // API calls: network-first
   if (url.pathname.startsWith('/api/')) {

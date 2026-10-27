@@ -194,6 +194,75 @@ function getToken() {
   return localStorage.getItem('auth_token');
 }
 
+function imageSourceAttribute(url) {
+  const safeUrl = escapeHtml(url || '');
+  return url && url.startsWith('/uploads/')
+    ? `data-private-src="${safeUrl}"`
+    : `src="${safeUrl}"`;
+}
+
+async function loadPrivateImage(img) {
+  const source = img.dataset.privateSrc;
+  const token = getToken();
+  const ownerPrefix = `/uploads/${encodeURIComponent(getUserId())}/`;
+  if (!source || !token || !source.startsWith(ownerPrefix) || img.dataset.loading === 'true') return;
+
+  img.dataset.loading = 'true';
+  try {
+    const response = await fetch(source, { headers: { Authorization: `Bearer ${token}` } });
+    if (response.status === 401) {
+      handleLogout();
+      showToast('登录已过期，请重新登录', 'error');
+      return;
+    }
+    if (!response.ok) return;
+
+    const objectUrl = URL.createObjectURL(await response.blob());
+    if (img.dataset.privateSrc !== source) {
+      URL.revokeObjectURL(objectUrl);
+      return;
+    }
+    if (img.dataset.objectUrl) URL.revokeObjectURL(img.dataset.objectUrl);
+    img.src = objectUrl;
+    img.dataset.objectUrl = objectUrl;
+    delete img.dataset.privateSrc;
+  } catch (err) {
+    console.error('加载图片失败:', err);
+  } finally {
+    delete img.dataset.loading;
+  }
+}
+
+const privateImageObserver = 'IntersectionObserver' in window
+  ? new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        privateImageObserver.unobserve(entry.target);
+        loadPrivateImage(entry.target);
+      }
+    });
+  }, { rootMargin: '120px' })
+  : null;
+
+function loadPrivateImages(container) {
+  container.querySelectorAll('img[data-private-src]').forEach(img => {
+    if (privateImageObserver) privateImageObserver.observe(img);
+    else loadPrivateImage(img);
+  });
+}
+
+function releasePrivateImages(container) {
+  const images = [];
+  if (container.matches && container.matches('img[data-object-url], img[data-private-src]')) images.push(container);
+  images.push(...container.querySelectorAll('img[data-object-url], img[data-private-src]'));
+  images.forEach(img => {
+    if (privateImageObserver) privateImageObserver.unobserve(img);
+    if (img.dataset.objectUrl) URL.revokeObjectURL(img.dataset.objectUrl);
+    delete img.dataset.objectUrl;
+    delete img.dataset.privateSrc;
+  });
+}
+
 function getUserId() {
   return localStorage.getItem('user_id');
 }
@@ -2711,6 +2780,7 @@ function clearFilters() {
 
 function renderRecords() {
   if (state.records.length === 0 && state.pagination.page === 1) {
+    releasePrivateImages(els.recordsList);
     els.recordsList.innerHTML = '';
     els.emptyState.classList.add('visible');
     return;
@@ -2720,6 +2790,7 @@ function renderRecords() {
 
   // Clear existing cards when on page 1 (fresh load)
   if (state.pagination.page === 1) {
+    releasePrivateImages(els.recordsList);
     els.recordsList.innerHTML = '';
   }
 
@@ -2734,6 +2805,7 @@ function renderRecords() {
     });
     els.recordsList.appendChild(article);
   });
+  loadPrivateImages(els.recordsList);
 }
 
 function updateLoadMoreBtn() {
@@ -2745,7 +2817,7 @@ function updateLoadMoreBtn() {
 function createRecordCard(record) {
   const imagesHtml = record.images && record.images.length > 0
     ? `<div class="card-images">
-        ${record.images.slice(0, 3).map(img => `<img src="${img.url}" alt="" class="card-image-thumb" loading="lazy">`).join('')}
+        ${record.images.slice(0, 3).map(img => `<img ${imageSourceAttribute(img.url)} alt="" class="card-image-thumb" loading="lazy">`).join('')}
         ${record.images.length > 3 ? `<div class="card-images-more">+${record.images.length - 3}</div>` : ''}
        </div>`
     : '';
@@ -2793,20 +2865,23 @@ function renderPhotos() {
   }
 
   if (filteredImages.length === 0) {
+    releasePrivateImages(els.photosGrid);
     els.photosGrid.innerHTML = '';
     els.photosEmptyState.style.display = 'flex';
     return;
   }
 
   els.photosEmptyState.style.display = 'none';
+  releasePrivateImages(els.photosGrid);
   els.photosGrid.innerHTML = filteredImages.map((img, i) => `
     <div class="photo-item" data-record-id="${img.recordId}" data-image-index="${img.imageIndex}">
-      <img src="${img.url}" alt="" loading="lazy">
+      <img ${imageSourceAttribute(img.url)} alt="" loading="lazy">
       <div class="photo-overlay">
         ${img.tags && typeof img.tags === 'string' ? `<span class="photo-tag">${escapeHtml(img.tags)}</span>` : ''}
       </div>
     </div>
   `).join('');
+  loadPrivateImages(els.photosGrid);
 
   els.photosGrid.querySelectorAll('.photo-item').forEach(item => {
     item.addEventListener('click', () => {
@@ -2832,6 +2907,7 @@ function updateSidebarStats() {
 function openModal(recordId = null) {
   state.editingRecord = recordId;
   els.recordForm.reset();
+  releasePrivateImages(els.imagePreview);
   els.imagePreview.innerHTML = '';
   state.pendingImages = [];
 
@@ -2954,11 +3030,12 @@ function openDetailModal(recordId) {
     ? `<div class="detail-section detail-images-section">
         <div class="detail-label">检查图片</div>
         <div class="detail-images">
-          ${record.images.map((img, i) => `<img src="${img.url}" alt="" data-index="${i}" loading="lazy">`).join('')}
+          ${record.images.map((img, i) => `<img ${imageSourceAttribute(img.url)} alt="" data-index="${i}" loading="lazy">`).join('')}
         </div>
        </div>`
     : '';
 
+  releasePrivateImages(els.detailContent);
   els.detailContent.innerHTML = `
     <div class="detail-header">
       <h2 class="modal-title">就医详情</h2>
@@ -2975,6 +3052,7 @@ function openDetailModal(recordId) {
     ${imagesHtml}
   `;
 
+  loadPrivateImages(els.detailContent);
   els.detailContent.querySelectorAll('.detail-images img').forEach(img => {
     img.addEventListener('click', () => {
       openImagePreview(recordId, parseInt(img.dataset.index));
@@ -2986,6 +3064,7 @@ function openDetailModal(recordId) {
 }
 
 function closeDetailModal() {
+  releasePrivateImages(els.detailContent);
   els.detailModal.classList.remove('active');
   document.body.style.overflow = '';
   state.currentRecordId = null;
@@ -3048,12 +3127,23 @@ function openImagePreview(recordId, imageIndex) {
 }
 
 function closeImagePreview() {
+  releasePrivateImages(els.previewImage);
+  els.previewImage.removeAttribute('src');
+  delete els.previewImage.dataset.privateSrc;
   els.imagePreviewModal.classList.remove('active');
 }
 
 function updatePreviewImage() {
   const img = state.previewImages[state.previewIndex];
-  els.previewImage.src = img.url;
+  releasePrivateImages(els.previewImage);
+  if (img.url && img.url.startsWith('/uploads/')) {
+    els.previewImage.removeAttribute('src');
+    els.previewImage.dataset.privateSrc = img.url;
+    loadPrivateImage(els.previewImage);
+  } else {
+    delete els.previewImage.dataset.privateSrc;
+    els.previewImage.src = img.url;
+  }
   els.previewInfo.textContent = `${state.previewIndex + 1} / ${state.previewImages.length}`;
 }
 
@@ -3283,14 +3373,16 @@ async function processFiles(files) {
 }
 
 function renderImagePreview() {
+  releasePrivateImages(els.imagePreview);
   els.imagePreview.innerHTML = state.pendingImages.map((img, index) => `
     <div class="preview-item">
-      <img src="${img.url}" alt="Preview">
+      <img ${imageSourceAttribute(img.url)} alt="Preview">
       <button type="button" class="remove-btn" data-index="${index}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
       </button>
     </div>
   `).join('');
+  loadPrivateImages(els.imagePreview);
 
   els.imagePreview.querySelectorAll('.remove-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
