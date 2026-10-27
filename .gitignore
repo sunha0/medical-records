@@ -2,5 +2,3 @@ node_modules/
 .claude/
 .DS_Store
 *.log
-.env*
-!.env.example

@@ -1,12 +1,9 @@
-require('dotenv').config({ path: '.env.local' });
-
 const express = require('express');
 const path = require('path');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const { initStorage, getUploadedImage } = require('./src/helpers/storage');
+const { initStorage, UPLOADS_DIR } = require('./src/helpers/storage');
 const { authenticate, adminGuard } = require('./src/middleware/authenticate');
-const { getJwtSecret } = require('./src/helpers/secret');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -27,7 +24,7 @@ app.use(helmet({
       scriptSrc: ["'self'", 'https://cdn.jsdelivr.net', 'https://cdnjs.cloudflare.com'],
       styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
       fontSrc: ["'self'", 'https://fonts.gstatic.com'],
-      imgSrc: ["'self'", 'data:', 'blob:'],
+      imgSrc: ["'self'", 'data:'],
       connectSrc: ["'self'"],
       objectSrc: ["'none'"],
       baseUri: ["'self'"],
@@ -51,27 +48,13 @@ app.get('/sw.js', (req, res) => res.sendFile(path.join(__dirname, 'sw.js')));
 app.use('/css', express.static(path.join(__dirname, 'css')));
 app.use('/js', express.static(path.join(__dirname, 'js')));
 
-// Private images are served only to their owning account. The frontend fetches them
-// with the same Bearer token used for API requests.
-app.get('/uploads/:userId/:filename', authenticate, async (req, res, next) => {
-  const { userId, filename } = req.params;
-  if (
-    userId !== req.userId ||
-    !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.(png|jpg|gif|webp)$/i.test(filename)
-  ) {
-    return res.sendStatus(404);
-  }
-  try {
-    const image = await getUploadedImage(userId, filename);
-    if (!image) return res.sendStatus(404);
-    res.setHeader('Content-Type', image.contentType);
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('Cache-Control', 'private, no-store');
-    res.send(image.data);
-  } catch (err) {
-    next(err);
-  }
-});
+// Uploaded images are still served without auth (plain <img src> tags can't send an
+// Authorization header), so unguessable UUID filenames are the only thing standing
+// between a URL and the file — nosniff stops browsers from executing anything other
+// than the declared image content-type even if that's ever wrong.
+app.use('/uploads', express.static(UPLOADS_DIR, {
+  setHeaders: (res) => res.setHeader('X-Content-Type-Options', 'nosniff')
+}));
 
 // --- Rate Limiting ---
 const authLimiter = rateLimit({
@@ -91,7 +74,7 @@ app.use('/api/login', authLimiter);
 app.use('/api/register', authLimiter);
 
 // --- Init Storage ---
-const storageReady = initStorage().then(() => getJwtSecret());
+const storageReady = initStorage();
 
 // --- Public Routes (no auth required) ---
 require('./src/routes/auth')(app);

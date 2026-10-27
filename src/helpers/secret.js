@@ -1,22 +1,19 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const DATA_DIR = path.join(__dirname, '..', '..', 'data');
+const { DATA_DIR } = require('./storage');
+
 const SECRET_FILE = path.join(DATA_DIR, '.jwt_secret');
 
 let cachedSecret = null;
 
-// Production requires JWT_SECRET; local development can reuse or create data/.jwt_secret.
+// Resolution order: JWT_SECRET env var > persisted data/.jwt_secret > freshly generated (and persisted)
 function getJwtSecret() {
   if (cachedSecret) return cachedSecret;
 
   if (process.env.JWT_SECRET) {
     cachedSecret = process.env.JWT_SECRET;
     return cachedSecret;
-  }
-
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('生产环境必须设置 JWT_SECRET 环境变量');
   }
 
   if (fs.existsSync(SECRET_FILE)) {
@@ -29,7 +26,7 @@ function getJwtSecret() {
   }
   cachedSecret = crypto.randomBytes(48).toString('hex');
   fs.writeFileSync(SECRET_FILE, cachedSecret, { mode: 0o600 });
-  console.warn('[Security] 未设置 JWT_SECRET 环境变量，已自动生成密钥并保存到 data/.jwt_secret（请勿提交到 git，生产环境必须设置 JWT_SECRET 环境变量）');
+  console.warn('[Security] 未设置 JWT_SECRET 环境变量，已自动生成密钥并保存到 data/.jwt_secret（请勿提交到 git，生产环境建议改用环境变量）');
   return cachedSecret;
 }
 

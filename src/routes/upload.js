@@ -1,6 +1,8 @@
 const multer = require('multer');
+const path = require('path');
+const fs = require('fs').promises;
 const { v4: uuidv4 } = require('uuid');
-const { saveUploadedImage } = require('../helpers/storage');
+const { UPLOADS_DIR } = require('../helpers/storage');
 
 // Only these raster formats are accepted. SVG is deliberately excluded — it can embed
 // <script>/<foreignObject> content and would be stored-XSS if opened directly from /uploads.
@@ -15,8 +17,9 @@ function detectImageType(buffer) {
   return SIGNATURES.find(s => s.check(buffer)) || null;
 }
 
-// Buffer uploads in memory so we can inspect the real file bytes before storing them
-// in Blob; client-supplied mimetype/extension are trivially spoofable and untrusted.
+// Buffer in memory instead of streaming straight to disk, so we can inspect the real
+// file bytes before it's ever written to the uploads directory (client-supplied
+// mimetype/extension are trivially spoofable and must not be trusted).
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 }
@@ -36,11 +39,10 @@ module.exports = function(app) {
           return res.status(400).json({ error: '只允许上传 PNG/JPEG/GIF/WEBP 格式的图片' });
         }
         const filename = `${uuidv4()}.${type.ext}`;
-        const contentType = type.ext === 'jpg' ? 'image/jpeg' : `image/${type.ext}`;
-        await saveUploadedImage(req.userId, filename, contentType, file.buffer);
+        await fs.writeFile(path.join(UPLOADS_DIR, filename), file.buffer);
         images.push({
           id: uuidv4(),
-          url: `/uploads/${encodeURIComponent(req.userId)}/${filename}`,
+          url: `/uploads/${filename}`,
           originalName: file.originalname,
           size: file.size,
           tags: []

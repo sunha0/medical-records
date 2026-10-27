@@ -1,4 +1,8 @@
-const { getUsers, saveUsers, getUserRecords, deleteUserData } = require('../helpers/storage');
+const { getUsers, saveUsers, getUserRecords } = require('../helpers/storage');
+const fs = require('fs').promises;
+const fsSync = require('fs');
+const path = require('path');
+const { DATA_DIR } = require('../helpers/storage');
 
 module.exports = function(app) {
   // List all users (admin only)
@@ -41,7 +45,11 @@ module.exports = function(app) {
       users.splice(userIndex, 1);
       await saveUsers(users);
 
-      await deleteUserData(userId);
+      // Delete user data directory
+      const userDir = path.join(DATA_DIR, userId);
+      if (fsSync.existsSync(userDir)) {
+        await fs.rm(userDir, { recursive: true, force: true });
+      }
 
       res.json({ success: true, message: `用户 ${username} 已删除` });
     } catch (err) {

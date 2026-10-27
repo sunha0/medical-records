@@ -138,7 +138,7 @@ module.exports = function(app) {
       }
 
       // Delete associated images
-      await deleteRecordImages(record, req.userId);
+      await deleteRecordImages(record);
 
       const filtered = records.filter(r => r.id !== req.params.id);
       await saveUserRecords(req.userId, filtered);

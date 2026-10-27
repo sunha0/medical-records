@@ -23,8 +23,8 @@
 
 - **前端**: HTML5 + CSS3 + Vanilla JavaScript + Chart.js
 - **后端**: Node.js + Express
-- **数据存储**: 私有 Vercel Blob（JSON 文档与图片）
-- **密码加密**: bcryptjs 哈希
+- **数据存储**: JSON 文件本地存储（按用户独立文件）
+- **密码加密**: SHA256 哈希
 - **PWA**: Service Worker + Manifest
 
 ## 安装运行
@@ -58,7 +58,7 @@ medical-records/
 │   └── app.js             # 前端逻辑（SPA 路由、API 交互、图表）
 ├── src/
 │   ├── helpers/
-│   │   └── storage.js     # Vercel Blob JSON 与图片读写
+│   │   └── storage.js     # 文件存储读写（用户、记录、指标、用药）
 │   └── routes/
 │       ├── auth.js        # 注册/登录
 │       ├── records.js     # 就医记录 CRUD
@@ -69,22 +69,13 @@ medical-records/
 │       ├── metrics.js     # 健康指标 CRUD
 │       ├── medications.js # 用药管理 CRUD
 │       └── admin.js       # 管理员接口
-└── data/                  # 旧 JSON 数据，仅用于首次迁移到 Blob
-    ├── users.json
-    └── <userId>/          # 每个用户的旧数据目录
+└── data/
+    ├── users.json         # 用户数据
+    └── <userId>/          # 每个用户的独立数据目录
         ├── records.json
         ├── metrics.json
         └── medications.json
 ```
-
-## Vercel 部署与持久化存储
-
-1. 在 Vercel 创建一个 **Private Blob Store**，并连接到此项目。私有存储用于保护病历和图片；连接后 Vercel 会提供 Blob 访问凭据。
-2. 在 Vercel 项目环境变量中设置稳定的 `JWT_SECRET`。若要保留当前登录令牌，请将现有签名密钥配置为该变量；更换密钥会使用户重新登录。不要把密钥提交到仓库。
-3. 使用 Node.js 20.x 部署。Blob SDK 通过 Vercel OIDC 访问已连接的存储。
-4. 本地开发时先链接 Vercel 项目，再运行 `vercel env pull .env.local` 获取环境变量；`.env.local` 已加入忽略规则。
-
-首次启动时，如果 Blob 中还没有 `data/users.json`，应用会把部署包内现有 `data/` 下的用户、记录、指标、用药和关联图片导入私有 Blob。之后 Blob 是唯一持久化数据源，后续部署不会覆盖它。图片只允许所属账号通过带登录令牌的接口读取。
 
 ## 使用说明
 
@@ -98,10 +89,10 @@ medical-records/
 
 ## 注意事项
 
-- 用户、病历、指标和用药以 JSON 文档存储在私有 Vercel Blob；上传图片单独保存为私有 Blob。
-- 旧 `data/` 目录仅用于首次导入；请在 Vercel Blob 中定期备份数据。
-- 生产环境必须设置稳定的 `JWT_SECRET`；本地开发可通过 `vercel env pull .env.local` 同步环境变量。
-- 默认端口 3000，如需修改请编辑 server.js。
+- 图片以 Base64 格式存储在 JSON 文件中
+- 请定期备份 data 目录下的数据文件
+- 默认端口 3000，如需修改请编辑 server.js
+- 首次启动会自动创建所需目录和文件
 
 ## License
 
